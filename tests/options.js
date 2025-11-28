@@ -1,5 +1,5 @@
 import { notEqual, equal } from 'assert';
-import Renderer from '../index.js';
+import { TerminalRenderer } from '../src/index.js';
 import marked, { resetMarked } from './_marked.js';
 
 var identity = function (o) {
@@ -32,7 +32,7 @@ opts.forEach(function (opt) {
 defaultOptions.emoji = false;
 
 describe('Options', function () {
-  var r = new Renderer(defaultOptions);
+  var r = new TerminalRenderer(defaultOptions);
 
   beforeEach(function () {
     resetMarked();
@@ -51,7 +51,7 @@ describe('Options', function () {
 
   it('should change tabs by space size', function () {
     var options = Object.assign({}, defaultOptions, { tab: 4 });
-    var r = new Renderer(options);
+    var r = new TerminalRenderer(options);
 
     var blockquoteText = '> Blockquote';
     equal(marked(blockquoteText, { renderer: r }), '    Blockquote\n\n');
@@ -62,7 +62,7 @@ describe('Options', function () {
 
   it('should use default tabs if passing not supported string', function () {
     var options = Object.assign({}, defaultOptions, { tab: 'dsakdskajhdsa' });
-    var r = new Renderer(options);
+    var r = new TerminalRenderer(options);
 
     var blockquoteText = '> Blockquote';
     equal(marked(blockquoteText, { renderer: r }), '    Blockquote\n\n');
@@ -73,7 +73,7 @@ describe('Options', function () {
 
   it('should change tabs by allowed characters', function () {
     var options = Object.assign({}, defaultOptions, { tab: '\t' });
-    var r = new Renderer(options);
+    var r = new TerminalRenderer(options);
 
     var blockquoteText = '> Blockquote';
     equal(marked(blockquoteText, { renderer: r }), '\tBlockquote\n\n');
@@ -84,7 +84,7 @@ describe('Options', function () {
 
   it('should support mulitple tab characters', function () {
     var options = Object.assign({}, defaultOptions, { tab: '\t\t' });
-    var r = new Renderer(options);
+    var r = new TerminalRenderer(options);
 
     var blockquoteText = '> Blockquote';
     equal(marked(blockquoteText, { renderer: r }), '\t\tBlockquote\n\n');
@@ -99,7 +99,7 @@ describe('Options', function () {
         return 'IMAGE';
       }
     });
-    var r = new Renderer(options);
+    var r = new TerminalRenderer(options);
 
     var text = `
 # Title

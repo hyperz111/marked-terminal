@@ -1,5 +1,5 @@
 import { equal, notEqual } from 'assert';
-import Renderer from '../index.js';
+import { TerminalRenderer } from '../src/index.js';
 import marked, { resetMarked } from './_marked.js';
 
 let identity = function (o) {
@@ -46,7 +46,7 @@ defaultOptions.tableOptions = {
 };
 
 function markup(str, gfm = false) {
-  let r = new Renderer(defaultOptions2);
+  let r = new TerminalRenderer(defaultOptions2);
   let markedOptions = {
     renderer: r,
     gfm: gfm
@@ -54,8 +54,8 @@ function markup(str, gfm = false) {
   return stripTermEsc(marked(str, markedOptions));
 }
 
-describe('Renderer', function () {
-  let r = new Renderer(defaultOptions);
+describe('TerminalRenderer', function () {
+  let r = new TerminalRenderer(defaultOptions);
   let markedOptions = {
     renderer: r
   };

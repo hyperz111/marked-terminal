@@ -1,8 +1,8 @@
 import { equal } from 'assert';
-import Renderer from '../index.js';
+import { TerminalRenderer } from '../src/index.js';
 
 describe('Terminal escape', function () {
-  var r = new Renderer();
+  var r = new TerminalRenderer();
 
   it('should not be included in text length', function () {
     var tokens = [

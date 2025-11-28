@@ -1,7 +1,7 @@
 import { equal } from 'assert';
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
-import Renderer from '../index.js';
+import { TerminalRenderer } from '../src/index.js';
 import marked, { resetMarked } from './_marked.js';
 import { fileURLToPath } from 'url';
 
@@ -46,7 +46,7 @@ opts.forEach(function (opt) {
 });
 
 function markup(str) {
-  var r = new Renderer(defaultOptions);
+  var r = new TerminalRenderer(defaultOptions);
   return stripTermEsc(marked(str, { renderer: r }));
 }
 

@@ -1,5 +1,5 @@
 import { notEqual, equal } from 'assert';
-import { markedTerminal } from '../index.js';
+import { markedTerminal } from '../src/index.js';
 import marked, { resetMarked } from './_marked.js';
 
 var identity = function (o) {
@@ -40,10 +40,7 @@ describe('Options', function () {
     marked.use(markedTerminal(defaultOptions));
     var markdownText = 'Some :emoji:';
 
-    notEqual(
-      marked(markdownText).indexOf(':emoji:'),
-      -1
-    );
+    notEqual(marked(markdownText).indexOf(':emoji:'), -1);
   });
 
   it('should change tabs by space size', function () {

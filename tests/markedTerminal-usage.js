@@ -1,5 +1,5 @@
 import { equal, notEqual } from 'assert';
-import { markedTerminal } from '../index.js';
+import { markedTerminal } from '../src/index.js';
 import marked, { resetMarked } from './_marked.js';
 
 let identity = function (o) {
@@ -46,10 +46,7 @@ defaultOptions.tableOptions = {
 };
 
 function markup(str, gfm = false) {
-  marked.use(
-    markedTerminal(defaultOptions2),
-    { gfm }
-  )
+  marked.use(markedTerminal(defaultOptions2), { gfm });
   return stripTermEsc(marked(str));
 }
 
@@ -122,10 +119,7 @@ describe('Renderer', function () {
   it('should show default if not supported emojis', function () {
     marked.use(markedTerminal(defaultOptions));
     let markdownText = 'Some :someundefined:';
-    notEqual(
-      marked(markdownText).indexOf(':someundefined:'),
-      -1
-    );
+    notEqual(marked(markdownText).indexOf(':someundefined:'), -1);
   });
 
   it('should not escape entities', function () {
