@@ -517,9 +517,9 @@ function fixNestedLists(body, indent) {
   return body.replace(regex, '$1\n' + indent + '$2$3');
 }
 
-var isPointedLine = function (line, indent) {
+function isPointedLine(line, indent) {
   return line.match('^(?:' + indent + ')*' + POINT_REGEX);
-};
+}
 
 function toSpaces(str) {
   return ' '.repeat(str.length);
@@ -535,9 +535,10 @@ function bulletPointLines(lines, indent) {
   return lines.split('\n').filter(identity).map(transform).join('\n');
 }
 
-var numberedPoint = function (n) {
+function numberedPoint(n) {
   return n + '. ';
-};
+}
+
 function numberedLine(indent, line, num) {
   return isPointedLine(line, indent)
     ? {
