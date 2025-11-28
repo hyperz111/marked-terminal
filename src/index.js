@@ -162,7 +162,7 @@ class Renderer {
     }
     text = this.transform(text);
 
-    var prefix = this.o.showSectionPrefix ? '#'.repeat(level) + ' ' : '';
+    const prefix = this.o.showSectionPrefix ? '#'.repeat(level) + ' ' : '';
     text = prefix + text;
     if (this.o.reflowText) {
       text = reflowText(text, this.o.width, this.options.gfm);
@@ -223,8 +223,8 @@ class Renderer {
 
       text += this.parser.parse(item.tokens, !!item.loose);
     }
-    var transform = compose(this.o.listitem, this.transform);
-    var isNested = text.indexOf('\n') !== -1;
+    const transform = compose(this.o.listitem, this.transform);
+    const isNested = text.indexOf('\n') !== -1;
     if (isNested) text = text.trim();
 
     // Use BULLET_POINT as a marker for ordered or unordered list item
@@ -242,7 +242,7 @@ class Renderer {
     if (typeof text === 'object') {
       text = this.parser.parseInline(text.tokens);
     }
-    var transform = compose(this.o.paragraph, this.transform);
+    const transform = compose(this.o.paragraph, this.transform);
     text = transform(text);
     if (this.o.reflowText) {
       text = reflowText(text, this.o.width, this.options.gfm);
@@ -274,7 +274,7 @@ class Renderer {
         body += this.tablerow({ text: cell });
       }
     }
-    var table = new Table({
+    const table = new Table({
       head: generateTableRow(header)[0],
       ...this.tableSettings
     });
@@ -342,8 +342,9 @@ class Renderer {
     }
 
     if (this.options.sanitize) {
+      let prot;
       try {
-        var prot = decodeURIComponent(unescape(href))
+        prot = decodeURIComponent(unescape(href))
           .replace(/[^\w:]/g, '')
           .toLowerCase();
       } catch (e) {
@@ -354,9 +355,9 @@ class Renderer {
       }
     }
 
-    var hasText = text && text !== href;
+    const hasText = text && text !== href;
 
-    var out = '';
+    let out = '';
 
     if (supportsHyperlinks.stdout) {
       let link = '';
@@ -385,7 +386,7 @@ class Renderer {
     if (typeof this.o.image === 'function') {
       return this.o.image(href, title, text);
     }
-    var out = '![' + text;
+    let out = '![' + text;
     if (title) out += ' – ' + title;
     return out + '](' + href + ')\n';
   }
@@ -441,20 +442,20 @@ export function markedTerminal(options, highlightOptions) {
 function reflowText(text, width, gfm) {
   // Hard break was inserted by Renderer.prototype.br or is
   // <br /> when gfm is true
-  var splitRe = gfm ? HARD_RETURN_GFM_RE : HARD_RETURN_RE,
+  const splitRe = gfm ? HARD_RETURN_GFM_RE : HARD_RETURN_RE,
     sections = text.split(splitRe),
     reflowed = [];
 
   sections.forEach(function (section) {
     // Split the section by escape codes so that we can
     // deal with them separately.
-    var fragments = section.split(/(\u001b\[(?:\d{1,3})(?:;\d{1,3})*m)/g);
-    var column = 0;
-    var currentLine = '';
-    var lastWasEscapeChar = false;
+    const fragments = section.split(/(\u001b\[(?:\d{1,3})(?:;\d{1,3})*m)/g);
+    let column = 0;
+    let currentLine = '';
+    let lastWasEscapeChar = false;
 
     while (fragments.length) {
-      var fragment = fragments[0];
+      const fragment = fragments[0];
 
       if (fragment === '') {
         fragments.splice(0, 1);
@@ -471,11 +472,11 @@ function reflowText(text, width, gfm) {
         continue;
       }
 
-      var words = fragment.split(/[ \t\n]+/);
+      const words = fragment.split(/[ \t\n]+/);
 
-      for (var i = 0; i < words.length; i++) {
-        var word = words[i];
-        var addSpace = column != 0;
+      for (let i = 0; i < words.length; i++) {
+        let word = words[i];
+        let addSpace = column != 0;
         if (lastWasEscapeChar) addSpace = false;
 
         // If adding the new word overflows the required width
@@ -489,7 +490,7 @@ function reflowText(text, width, gfm) {
           } else {
             // If the new word is longer than the required width
             // split this word into smaller parts.
-            var w = word.substr(0, width - column - addSpace);
+            const w = word.substr(0, width - column - addSpace);
             if (addSpace) currentLine += ' ';
             currentLine += w;
             reflowed.push(currentLine);
@@ -498,7 +499,7 @@ function reflowText(text, width, gfm) {
 
             word = word.substr(w.length);
             while (word.length) {
-              var w = word.substr(0, width);
+              const w = word.substr(0, width);
 
               if (!w.length) break;
 
@@ -550,7 +551,7 @@ const POINT_REGEX =
 
 // Prevents nested lists from joining their parent list's last line
 function fixNestedLists(body, indent) {
-  var regex = new RegExp(
+  const regex = new RegExp(
     '' +
       '(\\S(?: |  )?)' + // Last char of current point, plus one or two spaces
       // to allow trailing spaces
@@ -579,7 +580,7 @@ function bulletPointLine(indent, line) {
 }
 
 function bulletPointLines(lines, indent) {
-  var transform = bulletPointLine.bind(null, indent);
+  const transform = bulletPointLine.bind(null, indent);
   return lines.split('\n').filter(identity).map(transform).join('\n');
 }
 
@@ -600,7 +601,7 @@ function numberedLine(indent, line, num) {
 }
 
 function numberedLines(lines, indent) {
-  var transform = numberedLine.bind(null, indent);
+  const transform = numberedLine.bind(null, indent);
   let num = 0;
   return lines
     .split('\n')
@@ -642,7 +643,7 @@ function colorizeHighlightNode(node, theme, isTop = false) {
 function highlight(code, language, opts, hightlightOpts) {
   if (!colors.enabled) return code;
 
-  var style = opts.code;
+  const style = opts.code;
 
   code = fixHardReturn(code, opts.reflowText);
 
@@ -657,7 +658,7 @@ function highlight(code, language, opts, hightlightOpts) {
 
 function insertEmojis(text) {
   return text.replace(/:([A-Za-z0-9_\-\+]+?):/g, function (emojiString) {
-    var emojiSign = emojiData[emojiString.slice(1, -1)];
+    const emojiSign = emojiData[emojiString.slice(1, -1)];
     if (!emojiSign) return emojiString;
     return emojiSign + ' ';
   });
@@ -675,12 +676,12 @@ function undoColon(str) {
 function generateTableRow(text, escape) {
   if (!text) return [];
   escape = escape || identity;
-  var lines = escape(text).split('\n');
+  const lines = escape(text).split('\n');
 
-  var data = [];
+  const data = [];
   lines.forEach(function (line) {
     if (!line) return;
-    var parsed = line
+    const parsed = line
       .replace(TABLE_ROW_WRAP_REGEXP, '')
       .split(TABLE_CELL_SPLIT);
 
