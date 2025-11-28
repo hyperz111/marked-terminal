@@ -19,7 +19,7 @@
     "build": "rollup -c",
     "prepack": "npm run build",
     "test": "cross-env FORCE_HYPERLINK=0 mocha tests/*.js --reporter spec",
-    "format": "prettier -w ."
+    "format": "prettier -w src"
   },
   "files": [
     "index.js",
