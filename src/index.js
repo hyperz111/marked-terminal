@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
 import { highlight as highlightCli } from 'cli-highlight';
-import * as emoji from 'node-emoji';
+import emojilib from 'emojilib';
 import supportsHyperlinks from 'supports-hyperlinks';
 import textLength from 'string-width';
 
@@ -13,6 +13,9 @@ const COLON_REPLACER = '*#COLON|*';
 const COLON_REPLACER_REGEXP = new RegExp(escapeRegExp(COLON_REPLACER), 'g');
 
 const TAB_ALLOWED_CHARACTERS = ['\t'];
+const emojiData = Object.fromEntries(
+  Object.entries(emojilib.lib).map(([name, { char }]) => [name, char])
+);
 
 // HARD_RETURN holds a character sequence used to indicate text has a
 // hard (no-reflowing) line break.  Previously \r and \r\n were turned
@@ -586,7 +589,7 @@ function highlight(code, language, opts, hightlightOpts) {
 
 function insertEmojis(text) {
   return text.replace(/:([A-Za-z0-9_\-\+]+?):/g, function (emojiString) {
-    var emojiSign = emoji.get(emojiString);
+    var emojiSign = emojiData[emojiString.slice(1, -1)];
     if (!emojiSign) return emojiString;
     return emojiSign + ' ';
   });
