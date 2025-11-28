@@ -1,6 +1,6 @@
 import colors from '@colors/colors/safe.js';
 import Table from 'cli-table3';
-import { highlight as highlightCli } from 'cli-highlight';
+import hljs from 'highlight.js';
 import emojilib from 'emojilib';
 import supportsHyperlinks from 'supports-hyperlinks';
 import textLength from 'string-width';
@@ -52,14 +52,65 @@ const defaultOptions = {
   tableOptions: {}
 };
 
+const defaultHighlightTheme = {
+  keyword: colors.blue,
+  built_in: colors.cyan,
+  type: colors.cyan.dim,
+  literal: colors.blue,
+  number: colors.green,
+  regexp: colors.red,
+  string: colors.red,
+  subst: identity,
+  symbol: identity,
+  class: colors.blue,
+  function: colors.yellow,
+  title: identity,
+  params: identity,
+  comment: colors.green,
+  doctag: colors.green,
+  meta: colors.gray,
+  'meta-keyword': identity,
+  'meta-string': identity,
+  section: identity,
+  tag: colors.gray,
+  name: colors.blue,
+  'builtin-name': identity,
+  attr: colors.cyan,
+  attribute: identity,
+  variable: identity,
+  bullet: identity,
+  code: identity,
+  emphasis: colors.italic,
+  strong: colors.bold,
+  formula: identity,
+  link: colors.underline,
+  quote: identity,
+  'selector-tag': identity,
+  'selector-id': identity,
+  'selector-class': identity,
+  'selector-attr': identity,
+  'selector-pseudo': identity,
+  'template-tag': identity,
+  'template-variable': identity,
+  addition: colors.green,
+  deletion: colors.red,
+  default: identity
+};
+
 class Renderer {
-  constructor(options, highlightOptions) {
+  constructor(options = {}, highlightOptions = {}) {
     this.o = { ...defaultOptions, ...options };
     this.tab = sanitizeTab(this.o.tab, defaultOptions.tab);
     this.tableSettings = this.o.tableOptions;
     this.emoji = this.o.emoji ? insertEmojis : identity;
     this.unescape = this.o.unescape ? unescapeEntities : identity;
-    this.highlightOptions = highlightOptions || {};
+    this.highlightOptions = {
+      theme: {
+        ...defaultHighlightTheme,
+        ...(highlightOptions.theme ?? {})
+      },
+      ignoreIllegals: highlightOptions.ignoreIllegals
+    };
 
     this.transform = compose(undoColon, this.unescape, this.emoji);
   }
@@ -573,6 +624,21 @@ function section(text) {
   return text + '\n\n';
 }
 
+function colorizeHighlightNode(node, theme, isTop = false) {
+  if (typeof node === 'string') {
+    return isTop ? (theme.default ?? identity)(node) : node;
+  }
+
+  if (node.scope) {
+    const colorized = node.children
+      .map((n) => colorizeHighlightNode(n))
+      .join('');
+    return (theme[node.scope] ?? identity)(colorized);
+  }
+
+  return node.children.map((n) => colorizeHighlightNode(n, true)).join('');
+}
+
 function highlight(code, language, opts, hightlightOpts) {
   if (colors.enabled) return code;
 
@@ -581,7 +647,9 @@ function highlight(code, language, opts, hightlightOpts) {
   code = fixHardReturn(code, opts.reflowText);
 
   try {
-    return highlightCli(code, { ...hightlightOpts, language });
+    const result = hljs.highlight(code, { ...hightlightOpts, language });
+    const nodes = result.emitter.rootNode;
+    return colorizeHighlightNode(nodes);
   } catch (e) {
     return style(code);
   }
