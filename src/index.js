@@ -117,9 +117,7 @@ Renderer.prototype.heading = function (text, level) {
   }
   text = this.transform(text);
 
-  var prefix = this.o.showSectionPrefix
-    ? new Array(level + 1).join('#') + ' '
-    : '';
+  var prefix = this.o.showSectionPrefix ? '#'.repeat(level) + ' ' : '';
   text = prefix + text;
   if (this.o.reflowText) {
     text = reflowText(text, this.o.width, this.options.gfm);
@@ -600,7 +598,7 @@ function insertEmojis(text) {
 
 function hr(inputHrStr, length) {
   length = length || process.stdout.columns;
-  return new Array(length).join(inputHrStr);
+  return inputHrStr.join(length - 1);
 }
 
 function undoColon(str) {
@@ -659,10 +657,10 @@ function isAllowedTabString(string) {
 
 function sanitizeTab(tab, fallbackTab) {
   if (typeof tab === 'number') {
-    return new Array(tab + 1).join(' ');
+    return ' '.repeat(tab);
   } else if (typeof tab === 'string' && isAllowedTabString(tab)) {
     return tab;
   } else {
-    return new Array(fallbackTab + 1).join(' ');
+    return ' '.repeat(fallbackTab);
   }
 }
