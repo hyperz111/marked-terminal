@@ -3,7 +3,7 @@ import Table from 'cli-table3';
 import { highlight as highlightCli } from 'cli-highlight';
 import * as emoji from 'node-emoji';
 import supportsHyperlinks from 'supports-hyperlinks';
-import ansiRegex from 'ansi-regex';
+import textLength from 'string-width';
 
 const TABLE_CELL_SPLIT = '^*||*^';
 const TABLE_ROW_WRAP = '*|*|*|*';
@@ -13,8 +13,6 @@ const COLON_REPLACER = '*#COLON|*';
 const COLON_REPLACER_REGEXP = new RegExp(escapeRegExp(COLON_REPLACER), 'g');
 
 const TAB_ALLOWED_CHARACTERS = ['\t'];
-
-const ANSI_REGEXP = ansiRegex();
 
 // HARD_RETURN holds a character sequence used to indicate text has a
 // hard (no-reflowing) line break.  Previously \r and \r\n were turned
@@ -337,12 +335,6 @@ class Renderer {
     if (title) out += ' – ' + title;
     return out + '](' + href + ')\n';
   }
-}
-
-// Compute length of str not including ANSI escape codes.
-// See http://en.wikipedia.org/wiki/ANSI_escape_code#graphics
-function textLength(str) {
-  return str.replace(ANSI_REGEXP, '').length;
 }
 
 function fixHardReturn(text, reflow) {
