@@ -52,7 +52,7 @@ var defaultOptions = {
 };
 
 function Renderer(options, highlightOptions) {
-  this.o = Object.assign({}, defaultOptions, options);
+  this.o = { ...defaultOptions, ...options };
   this.tab = sanitizeTab(this.o.tab, defaultOptions.tab);
   this.tableSettings = this.o.tableOptions;
   this.emoji = this.o.emoji ? insertEmojis : identity;
@@ -231,15 +231,10 @@ Renderer.prototype.table = function (header, body) {
       body += this.tablerow({ text: cell });
     }
   }
-  var table = new Table(
-    Object.assign(
-      {},
-      {
-        head: generateTableRow(header)[0]
-      },
-      this.tableSettings
-    )
-  );
+  var table = new Table({
+    head: generateTableRow(header)[0],
+    ...this.tableSettings
+  });
 
   generateTableRow(body, this.transform).forEach(function (row) {
     table.push(row);
@@ -588,7 +583,7 @@ function highlight(code, language, opts, hightlightOpts) {
   code = fixHardReturn(code, opts.reflowText);
 
   try {
-    return highlightCli(code, Object.assign({}, { language }, hightlightOpts));
+    return highlightCli(code, { ...hightlightOpts, language });
   } catch (e) {
     return style(code);
   }
