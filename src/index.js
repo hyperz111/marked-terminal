@@ -5,26 +5,26 @@ import * as emoji from 'node-emoji';
 import supportsHyperlinks from 'supports-hyperlinks';
 import ansiRegex from 'ansi-regex';
 
-var TABLE_CELL_SPLIT = '^*||*^';
-var TABLE_ROW_WRAP = '*|*|*|*';
-var TABLE_ROW_WRAP_REGEXP = new RegExp(escapeRegExp(TABLE_ROW_WRAP), 'g');
+const TABLE_CELL_SPLIT = '^*||*^';
+const TABLE_ROW_WRAP = '*|*|*|*';
+const TABLE_ROW_WRAP_REGEXP = new RegExp(escapeRegExp(TABLE_ROW_WRAP), 'g');
 
-var COLON_REPLACER = '*#COLON|*';
-var COLON_REPLACER_REGEXP = new RegExp(escapeRegExp(COLON_REPLACER), 'g');
+const COLON_REPLACER = '*#COLON|*';
+const COLON_REPLACER_REGEXP = new RegExp(escapeRegExp(COLON_REPLACER), 'g');
 
-var TAB_ALLOWED_CHARACTERS = ['\t'];
+const TAB_ALLOWED_CHARACTERS = ['\t'];
 
-var ANSI_REGEXP = ansiRegex();
+const ANSI_REGEXP = ansiRegex();
 
 // HARD_RETURN holds a character sequence used to indicate text has a
 // hard (no-reflowing) line break.  Previously \r and \r\n were turned
 // into \n in marked's lexer- preprocessing step. So \r is safe to use
 // to indicate a hard (non-reflowed) return.
-var HARD_RETURN = '\r',
+const HARD_RETURN = '\r',
   HARD_RETURN_RE = new RegExp(HARD_RETURN),
   HARD_RETURN_GFM_RE = new RegExp(HARD_RETURN + '|<br />');
 
-var defaultOptions = {
+const defaultOptions = {
   code: chalk.yellow,
   blockquote: chalk.gray.italic,
   html: chalk.gray,
@@ -497,9 +497,9 @@ function indentify(indent, text) {
   return indent + text.split('\n').join('\n' + indent);
 }
 
-var BULLET_POINT_REGEX = '\\*';
-var NUMBERED_POINT_REGEX = '\\d+\\.';
-var POINT_REGEX =
+const BULLET_POINT_REGEX = '\\*';
+const NUMBERED_POINT_REGEX = '\\d+\\.';
+const POINT_REGEX =
   '(?:' + [BULLET_POINT_REGEX, NUMBERED_POINT_REGEX].join('|') + ')';
 
 // Prevents nested lists from joining their parent list's last line
@@ -527,7 +527,7 @@ function toSpaces(str) {
   return ' '.repeat(str.length);
 }
 
-var BULLET_POINT = '* ';
+const BULLET_POINT = '* ';
 function bulletPointLine(indent, line) {
   return isPointedLine(line, indent) ? line : toSpaces(BULLET_POINT) + line;
 }
