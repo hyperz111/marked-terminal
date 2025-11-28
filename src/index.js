@@ -51,15 +51,292 @@ var defaultOptions = {
   tableOptions: {}
 };
 
-function Renderer(options, highlightOptions) {
-  this.o = { ...defaultOptions, ...options };
-  this.tab = sanitizeTab(this.o.tab, defaultOptions.tab);
-  this.tableSettings = this.o.tableOptions;
-  this.emoji = this.o.emoji ? insertEmojis : identity;
-  this.unescape = this.o.unescape ? unescapeEntities : identity;
-  this.highlightOptions = highlightOptions || {};
+class Renderer {
+  constructor(options, highlightOptions) {
+    this.o = { ...defaultOptions, ...options };
+    this.tab = sanitizeTab(this.o.tab, defaultOptions.tab);
+    this.tableSettings = this.o.tableOptions;
+    this.emoji = this.o.emoji ? insertEmojis : identity;
+    this.unescape = this.o.unescape ? unescapeEntities : identity;
+    this.highlightOptions = highlightOptions || {};
 
-  this.transform = compose(undoColon, this.unescape, this.emoji);
+    this.transform = compose(undoColon, this.unescape, this.emoji);
+  }
+
+  get textLength() {
+    return textLength;
+  }
+
+  space() {
+    return '';
+  }
+
+  text(text) {
+    if (typeof text === 'object') {
+      text = text.text;
+    }
+    return this.o.text(text);
+  }
+
+  code(code, lang, escaped) {
+    if (typeof code === 'object') {
+      lang = code.lang;
+      escaped = !!code.escaped;
+      code = code.text;
+    }
+    return section(
+      indentify(this.tab, highlight(code, lang, this.o, this.highlightOptions))
+    );
+  }
+
+  blockquote(quote) {
+    if (typeof quote === 'object') {
+      quote = this.parser.parse(quote.tokens);
+    }
+    return section(this.o.blockquote(indentify(this.tab, quote.trim())));
+  }
+
+  html(html) {
+    if (typeof html === 'object') {
+      html = html.text;
+    }
+    return this.o.html(html);
+  }
+
+  heading(text, level) {
+    if (typeof text === 'object') {
+      level = text.depth;
+      text = this.parser.parseInline(text.tokens);
+    }
+    text = this.transform(text);
+
+    var prefix = this.o.showSectionPrefix ? '#'.repeat(level) + ' ' : '';
+    text = prefix + text;
+    if (this.o.reflowText) {
+      text = reflowText(text, this.o.width, this.options.gfm);
+    }
+    return section(
+      level === 1 ? this.o.firstHeading(text) : this.o.heading(text)
+    );
+  }
+
+  hr() {
+    return section(this.o.hr(hr('-', this.o.reflowText && this.o.width)));
+  }
+
+  list(body, ordered) {
+    if (typeof body === 'object') {
+      const listToken = body;
+      const start = listToken.start;
+      const loose = listToken.loose;
+
+      ordered = listToken.ordered;
+      body = '';
+      for (let j = 0; j < listToken.items.length; j++) {
+        body += this.listitem(listToken.items[j]);
+      }
+    }
+    body = this.o.list(body, ordered, this.tab);
+    return section(fixNestedLists(indentLines(this.tab, body), this.tab));
+  }
+
+  listitem(text) {
+    if (typeof text === 'object') {
+      const item = text;
+      text = '';
+      if (item.task) {
+        const checkbox = this.checkbox({ checked: !!item.checked });
+        if (item.loose) {
+          if (item.tokens.length > 0 && item.tokens[0].type === 'paragraph') {
+            item.tokens[0].text = checkbox + ' ' + item.tokens[0].text;
+            if (
+              item.tokens[0].tokens &&
+              item.tokens[0].tokens.length > 0 &&
+              item.tokens[0].tokens[0].type === 'text'
+            ) {
+              item.tokens[0].tokens[0].text =
+                checkbox + ' ' + item.tokens[0].tokens[0].text;
+            }
+          } else {
+            item.tokens.unshift({
+              type: 'text',
+              raw: checkbox + ' ',
+              text: checkbox + ' '
+            });
+          }
+        } else {
+          text += checkbox + ' ';
+        }
+      }
+
+      text += this.parser.parse(item.tokens, !!item.loose);
+    }
+    var transform = compose(this.o.listitem, this.transform);
+    var isNested = text.indexOf('\n') !== -1;
+    if (isNested) text = text.trim();
+
+    // Use BULLET_POINT as a marker for ordered or unordered list item
+    return '\n' + BULLET_POINT + transform(text);
+  }
+
+  checkbox(checked) {
+    if (typeof checked === 'object') {
+      checked = checked.checked;
+    }
+    return '[' + (checked ? 'X' : ' ') + '] ';
+  }
+
+  paragraph(text) {
+    if (typeof text === 'object') {
+      text = this.parser.parseInline(text.tokens);
+    }
+    var transform = compose(this.o.paragraph, this.transform);
+    text = transform(text);
+    if (this.o.reflowText) {
+      text = reflowText(text, this.o.width, this.options.gfm);
+    }
+    return section(text);
+  }
+
+  table(header, body) {
+    if (typeof header === 'object') {
+      const token = header;
+      header = '';
+
+      // header
+      let cell = '';
+      for (let j = 0; j < token.header.length; j++) {
+        cell += this.tablecell(token.header[j]);
+      }
+      header += this.tablerow({ text: cell });
+
+      body = '';
+      for (let j = 0; j < token.rows.length; j++) {
+        const row = token.rows[j];
+
+        cell = '';
+        for (let k = 0; k < row.length; k++) {
+          cell += this.tablecell(row[k]);
+        }
+
+        body += this.tablerow({ text: cell });
+      }
+    }
+    var table = new Table({
+      head: generateTableRow(header)[0],
+      ...this.tableSettings
+    });
+
+    generateTableRow(body, this.transform).forEach(function (row) {
+      table.push(row);
+    });
+    return section(this.o.table(table.toString()));
+  }
+
+  tablerow(content) {
+    if (typeof content === 'object') {
+      content = content.text;
+    }
+    return TABLE_ROW_WRAP + content + TABLE_ROW_WRAP + '\n';
+  }
+
+  tablecell(content) {
+    if (typeof content === 'object') {
+      content = this.parser.parseInline(content.tokens);
+    }
+    return content + TABLE_CELL_SPLIT;
+  }
+
+  // span level renderer
+  strong(text) {
+    if (typeof text === 'object') {
+      text = this.parser.parseInline(text.tokens);
+    }
+    return this.o.strong(text);
+  }
+
+  em(text) {
+    if (typeof text === 'object') {
+      text = this.parser.parseInline(text.tokens);
+    }
+    text = fixHardReturn(text, this.o.reflowText);
+    return this.o.em(text);
+  }
+
+  codespan(text) {
+    if (typeof text === 'object') {
+      text = text.text;
+    }
+    text = fixHardReturn(text, this.o.reflowText);
+    return this.o.codespan(text.replace(/:/g, COLON_REPLACER));
+  }
+
+  br() {
+    return this.o.reflowText ? HARD_RETURN : '\n';
+  }
+
+  del(text) {
+    if (typeof text === 'object') {
+      text = this.parser.parseInline(text.tokens);
+    }
+    return this.o.del(text);
+  }
+
+  link(href, title, text) {
+    if (typeof href === 'object') {
+      title = href.title;
+      text = this.parser.parseInline(href.tokens);
+      href = href.href;
+    }
+
+    if (this.options.sanitize) {
+      try {
+        var prot = decodeURIComponent(unescape(href))
+          .replace(/[^\w:]/g, '')
+          .toLowerCase();
+      } catch (e) {
+        return '';
+      }
+      if (prot.indexOf('javascript:') === 0) {
+        return '';
+      }
+    }
+
+    var hasText = text && text !== href;
+
+    var out = '';
+
+    if (supportsHyperlinks.stdout) {
+      let link = '';
+      if (text) {
+        link = this.o.href(this.emoji(text));
+      } else {
+        link = this.o.href(href);
+      }
+      // textLength breaks on '+' in URLs
+      out = `\u001B]8;;${href.replace(/\+/g, '%20')}\u0007${link}\u001B]8;;\u0007`;
+    } else {
+      if (hasText) out += this.emoji(text) + ' (';
+      out += this.o.href(href);
+      if (hasText) out += ')';
+    }
+    return this.o.link(out);
+  }
+
+  image(href, title, text) {
+    if (typeof href === 'object') {
+      title = href.title;
+      text = href.text;
+      href = href.href;
+    }
+
+    if (typeof this.o.image === 'function') {
+      return this.o.image(href, title, text);
+    }
+    var out = '![' + text;
+    if (title) out += ' – ' + title;
+    return out + '](' + href + ')\n';
+  }
 }
 
 // Compute length of str not including ANSI escape codes.
@@ -68,282 +345,9 @@ function textLength(str) {
   return str.replace(ANSI_REGEXP, '').length;
 }
 
-Renderer.prototype.textLength = textLength;
-
 function fixHardReturn(text, reflow) {
   return reflow ? text.replace(HARD_RETURN, /\n/g) : text;
 }
-
-Renderer.prototype.space = function () {
-  return '';
-};
-
-Renderer.prototype.text = function (text) {
-  if (typeof text === 'object') {
-    text = text.text;
-  }
-  return this.o.text(text);
-};
-
-Renderer.prototype.code = function (code, lang, escaped) {
-  if (typeof code === 'object') {
-    lang = code.lang;
-    escaped = !!code.escaped;
-    code = code.text;
-  }
-  return section(
-    indentify(this.tab, highlight(code, lang, this.o, this.highlightOptions))
-  );
-};
-
-Renderer.prototype.blockquote = function (quote) {
-  if (typeof quote === 'object') {
-    quote = this.parser.parse(quote.tokens);
-  }
-  return section(this.o.blockquote(indentify(this.tab, quote.trim())));
-};
-
-Renderer.prototype.html = function (html) {
-  if (typeof html === 'object') {
-    html = html.text;
-  }
-  return this.o.html(html);
-};
-
-Renderer.prototype.heading = function (text, level) {
-  if (typeof text === 'object') {
-    level = text.depth;
-    text = this.parser.parseInline(text.tokens);
-  }
-  text = this.transform(text);
-
-  var prefix = this.o.showSectionPrefix ? '#'.repeat(level) + ' ' : '';
-  text = prefix + text;
-  if (this.o.reflowText) {
-    text = reflowText(text, this.o.width, this.options.gfm);
-  }
-  return section(
-    level === 1 ? this.o.firstHeading(text) : this.o.heading(text)
-  );
-};
-
-Renderer.prototype.hr = function () {
-  return section(this.o.hr(hr('-', this.o.reflowText && this.o.width)));
-};
-
-Renderer.prototype.list = function (body, ordered) {
-  if (typeof body === 'object') {
-    const listToken = body;
-    const start = listToken.start;
-    const loose = listToken.loose;
-
-    ordered = listToken.ordered;
-    body = '';
-    for (let j = 0; j < listToken.items.length; j++) {
-      body += this.listitem(listToken.items[j]);
-    }
-  }
-  body = this.o.list(body, ordered, this.tab);
-  return section(fixNestedLists(indentLines(this.tab, body), this.tab));
-};
-
-Renderer.prototype.listitem = function (text) {
-  if (typeof text === 'object') {
-    const item = text;
-    text = '';
-    if (item.task) {
-      const checkbox = this.checkbox({ checked: !!item.checked });
-      if (item.loose) {
-        if (item.tokens.length > 0 && item.tokens[0].type === 'paragraph') {
-          item.tokens[0].text = checkbox + ' ' + item.tokens[0].text;
-          if (
-            item.tokens[0].tokens &&
-            item.tokens[0].tokens.length > 0 &&
-            item.tokens[0].tokens[0].type === 'text'
-          ) {
-            item.tokens[0].tokens[0].text =
-              checkbox + ' ' + item.tokens[0].tokens[0].text;
-          }
-        } else {
-          item.tokens.unshift({
-            type: 'text',
-            raw: checkbox + ' ',
-            text: checkbox + ' '
-          });
-        }
-      } else {
-        text += checkbox + ' ';
-      }
-    }
-
-    text += this.parser.parse(item.tokens, !!item.loose);
-  }
-  var transform = compose(this.o.listitem, this.transform);
-  var isNested = text.indexOf('\n') !== -1;
-  if (isNested) text = text.trim();
-
-  // Use BULLET_POINT as a marker for ordered or unordered list item
-  return '\n' + BULLET_POINT + transform(text);
-};
-
-Renderer.prototype.checkbox = function (checked) {
-  if (typeof checked === 'object') {
-    checked = checked.checked;
-  }
-  return '[' + (checked ? 'X' : ' ') + '] ';
-};
-
-Renderer.prototype.paragraph = function (text) {
-  if (typeof text === 'object') {
-    text = this.parser.parseInline(text.tokens);
-  }
-  var transform = compose(this.o.paragraph, this.transform);
-  text = transform(text);
-  if (this.o.reflowText) {
-    text = reflowText(text, this.o.width, this.options.gfm);
-  }
-  return section(text);
-};
-
-Renderer.prototype.table = function (header, body) {
-  if (typeof header === 'object') {
-    const token = header;
-    header = '';
-
-    // header
-    let cell = '';
-    for (let j = 0; j < token.header.length; j++) {
-      cell += this.tablecell(token.header[j]);
-    }
-    header += this.tablerow({ text: cell });
-
-    body = '';
-    for (let j = 0; j < token.rows.length; j++) {
-      const row = token.rows[j];
-
-      cell = '';
-      for (let k = 0; k < row.length; k++) {
-        cell += this.tablecell(row[k]);
-      }
-
-      body += this.tablerow({ text: cell });
-    }
-  }
-  var table = new Table({
-    head: generateTableRow(header)[0],
-    ...this.tableSettings
-  });
-
-  generateTableRow(body, this.transform).forEach(function (row) {
-    table.push(row);
-  });
-  return section(this.o.table(table.toString()));
-};
-
-Renderer.prototype.tablerow = function (content) {
-  if (typeof content === 'object') {
-    content = content.text;
-  }
-  return TABLE_ROW_WRAP + content + TABLE_ROW_WRAP + '\n';
-};
-
-Renderer.prototype.tablecell = function (content) {
-  if (typeof content === 'object') {
-    content = this.parser.parseInline(content.tokens);
-  }
-  return content + TABLE_CELL_SPLIT;
-};
-
-// span level renderer
-Renderer.prototype.strong = function (text) {
-  if (typeof text === 'object') {
-    text = this.parser.parseInline(text.tokens);
-  }
-  return this.o.strong(text);
-};
-
-Renderer.prototype.em = function (text) {
-  if (typeof text === 'object') {
-    text = this.parser.parseInline(text.tokens);
-  }
-  text = fixHardReturn(text, this.o.reflowText);
-  return this.o.em(text);
-};
-
-Renderer.prototype.codespan = function (text) {
-  if (typeof text === 'object') {
-    text = text.text;
-  }
-  text = fixHardReturn(text, this.o.reflowText);
-  return this.o.codespan(text.replace(/:/g, COLON_REPLACER));
-};
-
-Renderer.prototype.br = function () {
-  return this.o.reflowText ? HARD_RETURN : '\n';
-};
-
-Renderer.prototype.del = function (text) {
-  if (typeof text === 'object') {
-    text = this.parser.parseInline(text.tokens);
-  }
-  return this.o.del(text);
-};
-
-Renderer.prototype.link = function (href, title, text) {
-  if (typeof href === 'object') {
-    title = href.title;
-    text = this.parser.parseInline(href.tokens);
-    href = href.href;
-  }
-
-  if (this.options.sanitize) {
-    try {
-      var prot = decodeURIComponent(unescape(href))
-        .replace(/[^\w:]/g, '')
-        .toLowerCase();
-    } catch (e) {
-      return '';
-    }
-    if (prot.indexOf('javascript:') === 0) {
-      return '';
-    }
-  }
-
-  var hasText = text && text !== href;
-
-  var out = '';
-
-  if (supportsHyperlinks.stdout) {
-    let link = '';
-    if (text) {
-      link = this.o.href(this.emoji(text));
-    } else {
-      link = this.o.href(href);
-    }
-    // textLength breaks on '+' in URLs
-    out = `\u001B]8;;${href.replace(/\+/g, '%20')}\u0007${link}\u001B]8;;\u0007`;
-  } else {
-    if (hasText) out += this.emoji(text) + ' (';
-    out += this.o.href(href);
-    if (hasText) out += ')';
-  }
-  return this.o.link(out);
-};
-
-Renderer.prototype.image = function (href, title, text) {
-  if (typeof href === 'object') {
-    title = href.title;
-    text = href.text;
-    href = href.href;
-  }
-
-  if (typeof this.o.image === 'function') {
-    return this.o.image(href, title, text);
-  }
-  var out = '![' + text;
-  if (title) out += ' – ' + title;
-  return out + '](' + href + ')\n';
-};
 
 export default Renderer;
 
