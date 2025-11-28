@@ -107,7 +107,7 @@ class Renderer {
     this.highlightOptions = {
       theme: {
         ...defaultHighlightTheme,
-        ...(highlightOptions.theme ?? {})
+        ...highlightOptions.theme
       },
       ignoreIllegals: highlightOptions.ignoreIllegals
     };
@@ -640,7 +640,7 @@ function colorizeHighlightNode(node, theme, isTop = false) {
 }
 
 function highlight(code, language, opts, hightlightOpts) {
-  if (colors.enabled) return code;
+  if (!colors.enabled) return code;
 
   var style = opts.code;
 
