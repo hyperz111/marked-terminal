@@ -640,12 +640,11 @@ function identity(str) {
   return str;
 }
 
-function compose() {
-  var funcs = arguments;
-  return function () {
-    var args = arguments;
-    for (var i = funcs.length; i-- > 0; ) {
-      args = [funcs[i].apply(this, args)];
+function compose(...funcs) {
+  return function (...args) {
+    let i = funcs.length;
+    for (; i-- > 0; ) {
+      args = [funcs[i](...args)];
     }
     return args[0];
   };
