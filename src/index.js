@@ -1,4 +1,4 @@
-import chalk from 'chalk';
+import colors from '@colors/colors/safe.js';
 import Table from 'cli-table3';
 import { highlight as highlightCli } from 'cli-highlight';
 import emojilib from 'emojilib';
@@ -26,22 +26,22 @@ const HARD_RETURN = '\r',
   HARD_RETURN_GFM_RE = new RegExp(HARD_RETURN + '|<br />');
 
 const defaultOptions = {
-  code: chalk.yellow,
-  blockquote: chalk.gray.italic,
-  html: chalk.gray,
-  heading: chalk.green.bold,
-  firstHeading: chalk.magenta.underline.bold,
-  hr: chalk.reset,
-  listitem: chalk.reset,
+  code: colors.yellow,
+  blockquote: colors.gray.italic,
+  html: colors.gray,
+  heading: colors.green.bold,
+  firstHeading: colors.magenta.underline.bold,
+  hr: colors.reset,
+  listitem: colors.reset,
   list: list,
-  table: chalk.reset,
-  paragraph: chalk.reset,
-  strong: chalk.bold,
-  em: chalk.italic,
-  codespan: chalk.yellow,
-  del: chalk.dim.gray.strikethrough,
-  link: chalk.blue,
-  href: chalk.blue.underline,
+  table: colors.reset,
+  paragraph: colors.reset,
+  strong: colors.bold,
+  em: colors.italic,
+  codespan: colors.yellow,
+  del: colors.dim.gray.strikethrough,
+  link: colors.blue,
+  href: colors.blue.underline,
   text: identity,
   unescape: true,
   emoji: true,
@@ -574,7 +574,7 @@ function section(text) {
 }
 
 function highlight(code, language, opts, hightlightOpts) {
-  if (chalk.level === 0) return code;
+  if (colors.enabled) return code;
 
   var style = opts.code;
 
