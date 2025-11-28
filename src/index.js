@@ -97,7 +97,7 @@ const defaultHighlightTheme = {
   default: identity
 };
 
-class Renderer {
+class TerminalRenderer {
   constructor(options = {}, highlightOptions = {}) {
     this.o = { ...defaultOptions, ...options };
     this.tab = sanitizeTab(this.o.tab, defaultOptions.tab);
@@ -396,10 +396,8 @@ function fixHardReturn(text, reflow) {
   return reflow ? text.replace(HARD_RETURN, /\n/g) : text;
 }
 
-export default Renderer;
-
-export function markedTerminal(options, highlightOptions) {
-  const r = new Renderer(options, highlightOptions);
+function markedTerminal(options, highlightOptions) {
+  const r = new TerminalRenderer(options, highlightOptions);
 
   const funcs = [
     'text',
@@ -437,10 +435,12 @@ export function markedTerminal(options, highlightOptions) {
   );
 }
 
+export { TerminalRenderer, markedTerminal };
+
 // Munge \n's and spaces in "text" so that the number of
 // characters between \n's is less than or equal to "width".
 function reflowText(text, width, gfm) {
-  // Hard break was inserted by Renderer.prototype.br or is
+  // Hard break was inserted by TerminalRenderer.prototype.br or is
   // <br /> when gfm is true
   const splitRe = gfm ? HARD_RETURN_GFM_RE : HARD_RETURN_RE,
     sections = text.split(splitRe),
