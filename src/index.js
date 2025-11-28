@@ -598,7 +598,7 @@ function insertEmojis(text) {
 
 function hr(inputHrStr, length) {
   length = length || process.stdout.columns;
-  return inputHrStr.join(length - 1);
+  return inputHrStr.repeat(length - 1);
 }
 
 function undoColon(str) {
