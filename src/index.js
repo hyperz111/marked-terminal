@@ -394,8 +394,8 @@ function fixHardReturn(text, reflow) {
   return reflow ? text.replace(HARD_RETURN, /\n/g) : text;
 }
 
-function markedTerminal(options, highlightOptions) {
-  const r = new TerminalRenderer(options, highlightOptions);
+function markedTerminal(options) {
+  const r = new TerminalRenderer(options);
 
   const funcs = [
     'text',

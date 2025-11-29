@@ -58,6 +58,8 @@ export interface RendererOptions {
   tab?: string | number;
   /** Options passed to `cli-table3`. */
   tableOptions?: TableConstructorOptions;
+  /** Highlight Options */
+  highlightOptions?: HighlightOptions;
 }
 
 interface HighlightThemeOptions {
@@ -231,7 +233,7 @@ interface HighlightThemeOptions {
   default?: Formatter;
 }
 
-export interface HighlightOptions {
+interface HighlightOptions {
   /** Highlight theme options. */
   theme?: HighlightThemeOptions;
   /** `ignoreIllegals` option on `highlight.js`. */
@@ -244,18 +246,14 @@ export interface HighlightOptions {
  * highlighting for javascript, and overriding all colors and styles.
  */
 declare class TerminalRenderer implements RendererApi {
-  constructor(options?: RendererOptions, highlightOptions?: HighlightOptions);
+  constructor(options?: RendererOptions);
 }
 
 /**
  * Marked extension with {@link TerminalRenderer} Renderer.
  * @param {RendererOptions} options Renderer Options.
- * @param {HighlightOptions} highlightOptions Highlight Options.
  * @returns {MarkedExtension} Marked extension.
  */
-declare function markedTerminal(
-  options?: RendererOptions,
-  highlightOptions?: HighlightOptions
-): MarkedExtension;
+declare function markedTerminal(options?: RendererOptions): MarkedExtension;
 
 export { TerminalRenderer, markedTerminal };
