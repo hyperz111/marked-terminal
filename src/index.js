@@ -645,13 +645,18 @@ function highlight(code, language, opts) {
 
   code = fixHardReturn(code, opts.reflowText);
 
-  try {
-    const result = hljs.highlight(code, { ...opts.highlightOptions, language });
-    const nodes = result.emitter.rootNode;
-    return colorizeHighlightNode(nodes);
-  } catch (e) {
-    return style(code);
+  if (!!language) {
+    try {
+      const result = hljs.highlight(code, {
+        ...opts.highlightOptions,
+        language
+      });
+      const nodes = result.emitter.rootNode;
+      return colorizeHighlightNode(nodes);
+    } catch (e) {}
   }
+
+  return style(code);
 }
 
 function insertEmojis(text) {
