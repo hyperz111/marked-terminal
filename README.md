@@ -49,7 +49,6 @@ This will produce the following:
 ### Syntax Highlighting
 
 Also have support for syntax highlighting.
-You can override highlighting defaults by passing in settings as the second argument for `TerminalRenderer`.
 
 Having the following markdown input:
 
