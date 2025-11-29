@@ -4,33 +4,59 @@ import { type MarkedExtension, type RendererApi } from 'marked';
 type Formatter = (arg: string) => string;
 
 export interface RendererOptions {
+  /** Formatter for code block. */
   code?: Formatter;
+  /** Formatter for blockquote. */
   blockquote?: Formatter;
+  /** Formatter for html. */
   html?: Formatter;
+  /** Formatter for heading. */
   heading?: Formatter;
+  /** Formatter for top-level heading. */
   firstHeading?: Formatter;
+  /** Formatter for hr. */
   hr?: Formatter;
+  /** Formatter for list item. */
   listitem?: Formatter;
+  /** Formatter for table. */
+  table?: Formatter;
+  /** Formatter for paragraph. */
+  paragraph?: Formatter;
+  /** Formatter for strong (bold) text. */
+  strong?: Formatter;
+  /** Formatter for emphasis (italic) text. */
+  em?: Formatter;
+  /** Formatter for inline code. */
+  codespan?: Formatter;
+  /** Formatter for deletion. */
+  del?: Formatter;
+  /** Formatter for link. */
+  link?: Formatter;
+  /** Formatter for href in link. */
+  href?: Formatter;
+  /** Formatter for text. */
+  text?: Formatter;
+  /** Formats the bulletpoints and numbers for lists. */
   list?: (
     body: string,
     ordered: boolean,
     indent: RendererOptions['tab']
   ) => string;
-  table?: Formatter;
-  paragraph?: Formatter;
-  strong?: Formatter;
-  em?: Formatter;
-  codespan?: Formatter;
-  del?: Formatter;
-  link?: Formatter;
-  href?: Formatter;
-  text?: Formatter;
-  unescape?: boolean;
-  emoji?: boolean;
-  width?: number;
-  showSectionPrefix?: boolean;
+  /** Function for overriding the default image handling. */
+  image?: (href: string, title: string, text: string) => string;
+  /** Reflow. */
   reflowText?: boolean;
+  /** Only applicable when {@link reflowText} is true. */
+  width?: number;
+  /** Whether or not to undo marked escaping of enitities. */
+  unescape?: boolean;
+  /** Whether or not to show emojis. */
+  emoji?: boolean;
+  /** Should it prefix headers? */
+  showSectionPrefix?: boolean;
+  /** The size of tabs in number of spaces or as tab characters. */
   tab?: string | number;
+  /** Options passed to `cli-table3`. */
   tableOptions?: TableConstructorOptions;
 }
 
@@ -206,14 +232,27 @@ interface HighlightThemeOptions {
 }
 
 export interface HighlightOptions {
+  /** Highlight theme options. */
   theme?: HighlightThemeOptions;
+  /** `ignoreIllegals` option on `highlight.js`. */
   ignoreIllegals?: boolean;
 }
 
+/**
+ * Custom Renderer for [marked](https://github.com/markedjs/marked)
+ * allowing for printing Markdown to the Terminal. Supports pretty tables, syntax
+ * highlighting for javascript, and overriding all colors and styles.
+ */
 declare class TerminalRenderer implements RendererApi {
   constructor(options?: RendererOptions, highlightOptions?: HighlightOptions);
 }
 
+/**
+ * Marked extension with {@link TerminalRenderer} Renderer.
+ * @param {RendererOptions} options Renderer Options.
+ * @param {HighlightOptions} highlightOptions Highlight Options.
+ * @returns {MarkedExtension} Marked extension.
+ */
 declare function markedTerminal(
   options?: RendererOptions,
   highlightOptions?: HighlightOptions
