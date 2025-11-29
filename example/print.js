@@ -1,12 +1,12 @@
 import marked from '../tests/_marked.js';
-import chalk from 'chalk';
-import TerminalRenderer from '../index.js';
+import colors from '@colors/colors/safe.js';
+import { TerminalRenderer } from '../src/index.js';
 
 marked.setOptions({
   // Define custom renderer
   renderer: new TerminalRenderer({
     // Change style for code
-    codespan: chalk.underline.magenta,
+    codespan: colors.underline.magenta,
     emoji: true,
 
     // Can also override color/styling by own functions.

@@ -1,5 +1,5 @@
 import marked from '../tests/_marked.js';
-import TerminalRenderer from '../index.js';
+import { TerminalRenderer } from '../src/index.js';
 
 marked.setOptions({
   // Define custom renderer

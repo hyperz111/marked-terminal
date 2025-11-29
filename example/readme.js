@@ -1,6 +1,6 @@
 import marked from '../tests/_marked.js';
 import { readFileSync } from 'fs';
-import TerminalRenderer from '../index.js';
+import { TerminalRenderer } from '../src/index.js';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 

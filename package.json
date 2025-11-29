@@ -15,7 +15,7 @@
   },
   "scripts": {
     "test": "cross-env FORCE_HYPERLINK=0 mocha tests/*.js --reporter spec",
-    "format": "prettier -w src tests/*.js package.json"
+    "format": "prettier -w src example tests/*.js package.json"
   },
   "files": [
     "src"
