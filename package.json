@@ -2,26 +2,23 @@
   "name": "marked-terminal",
   "version": "7.3.0",
   "description": "A custom render for marked to output to the Terminal",
-  "main": "./index.cjs",
-  "browser": "./index.js",
+  "main": "./src/index.js",
   "exports": {
-    "node": {
-      "import": "./index.js",
-      "require": "./index.cjs"
-    },
-    "default": "./index.js"
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    }
   },
   "type": "module",
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=20.19"
   },
   "scripts": {
     "test": "cross-env FORCE_HYPERLINK=0 mocha tests/*.js --reporter spec",
-    "format": "prettier -w src tests/*.js"
+    "format": "prettier -w src tests/*.js package.json"
   },
   "files": [
-    "index.js",
-    "index.cjs"
+    "src"
   ],
   "keywords": [
     "marked",
@@ -54,7 +51,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mikaelbr/marked-terminal.git"
+    "url": "git+https://github.com/mikaelbr/marked-terminal.git"
   },
   "bugs": {
     "url": "https://github.com/mikaelbr/marked-terminal/issues"
