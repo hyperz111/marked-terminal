@@ -16,8 +16,6 @@
     "node": ">=16.0.0"
   },
   "scripts": {
-    "build": "rollup -c",
-    "prepack": "npm run build",
     "test": "cross-env FORCE_HYPERLINK=0 mocha tests/*.js --reporter spec",
     "format": "prettier -w src tests/*.js"
   },
@@ -49,13 +47,10 @@
     "example": "example"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^28.0.2",
-    "@rollup/plugin-node-resolve": "^16.0.0",
     "cross-env": "^7.0.3",
     "marked": "^16.0.0",
     "mocha": "^11.0.1",
-    "prettier": "^3.7.1",
-    "rollup": "^4.29.1"
+    "prettier": "^3.7.1"
   },
   "repository": {
     "type": "git",
