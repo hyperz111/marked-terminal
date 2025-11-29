@@ -98,18 +98,18 @@ const defaultHighlightTheme = {
 };
 
 class TerminalRenderer {
-  constructor(options = {}, highlightOptions = {}) {
+  constructor(options = {}) {
     this.o = { ...defaultOptions, ...options };
     this.tab = sanitizeTab(this.o.tab, defaultOptions.tab);
     this.tableSettings = this.o.tableOptions;
     this.emoji = this.o.emoji ? insertEmojis : identity;
     this.unescape = this.o.unescape ? unescapeEntities : identity;
-    this.highlightOptions = {
+    this.o.highlightOptions = {
       theme: {
         ...defaultHighlightTheme,
-        ...highlightOptions.theme
+        ...options.highlightOptions?.theme
       },
-      ignoreIllegals: highlightOptions.ignoreIllegals
+      ignoreIllegals: options.highlightOptions?.ignoreIllegals
     };
 
     this.transform = compose(undoColon, this.unescape, this.emoji);
@@ -136,9 +136,7 @@ class TerminalRenderer {
       escaped = !!code.escaped;
       code = code.text;
     }
-    return section(
-      indentify(this.tab, highlight(code, lang, this.o, this.highlightOptions))
-    );
+    return section(indentify(this.tab, highlight(code, lang, this.o)));
   }
 
   blockquote(quote) {
@@ -640,7 +638,7 @@ function colorizeHighlightNode(node, theme, isTop = false) {
   return node.children.map((n) => colorizeHighlightNode(n, true)).join('');
 }
 
-function highlight(code, language, opts, hightlightOpts) {
+function highlight(code, language, opts) {
   if (!colors.enabled) return code;
 
   const style = opts.code;
@@ -648,7 +646,7 @@ function highlight(code, language, opts, hightlightOpts) {
   code = fixHardReturn(code, opts.reflowText);
 
   try {
-    const result = hljs.highlight(code, { ...hightlightOpts, language });
+    const result = hljs.highlight(code, { ...opts.highlightOptions, language });
     const nodes = result.emitter.rootNode;
     return colorizeHighlightNode(nodes);
   } catch (e) {
