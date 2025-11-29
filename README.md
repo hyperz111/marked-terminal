@@ -1,6 +1,6 @@
 # marked-terminal
 
-> Custom Renderer for [marked](https://github.com/chjj/marked)
+> Custom Renderer for [marked](https://github.com/markedjs/marked)
 > allowing for printing Markdown to the Terminal. Supports pretty tables, syntax
 > highlighting for javascript, and overriding all colors and styles.
 
@@ -29,7 +29,7 @@ marked.parse('# Hello \n This is **markdown** printed in the `terminal`');
 
 ```javascript
 const marked = require('marked');
-const TerminalRenderer = require('marked-terminal');
+const { TerminalRenderer } = require('marked-terminal');
 
 marked.setOptions({
   // Define custom renderer
@@ -48,8 +48,8 @@ This will produce the following:
 
 ### Syntax Highlighting
 
-Also have support for syntax highlighting using [cli-highlight](https://github.com/felixfbecker/cli-highlight).
-You can override highlighting defaults by passing in settings as the second argument for TerminalRenderer.
+Also have support for syntax highlighting.
+You can override highlighting defaults by passing in settings as the second argument for `TerminalRenderer`.
 
 Having the following markdown input:
 
@@ -79,13 +79,12 @@ Constructur: `new TerminalRenderer([options][, highlightOptions])`
 
 ### `options`
 
-Optional
-Used to override default styling.
+Used to override default styling (Optional).
 
 Default values are:
 
 ```javascript
-var defaultOptions = {
+const defaultOptions = {
   // Colors
   code: chalk.yellow,
   blockquote: chalk.gray.italic,
@@ -142,7 +141,7 @@ marked.setOptions({
 
 ### `highlightOptions`
 
-Options passed into [cli-highlight](https://github.com/felixfbecker/cli-highlight). See readme there to see what options to pass.
+Highlight options.
 
 See [more examples](./example/)
 
