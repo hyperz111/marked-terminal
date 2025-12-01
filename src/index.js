@@ -125,7 +125,7 @@ class TerminalRenderer {
 
   text(text) {
     if (typeof text === 'object') {
-      text = text.text;
+      text = text.tokens ? this.parser.parseInline(text.tokens) : text.text;
     }
     return this.o.text(text);
   }
