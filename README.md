@@ -20,7 +20,7 @@ npm install marked marked-terminal
 import { marked } from 'marked';
 import { markedTerminal } from 'marked-terminal';
 
-marked.use(markedTerminal([options][, highlightOptions]));
+marked.use(markedTerminal(options));
 
 marked.parse('# Hello \n This is **markdown** printed in the `terminal`');
 ```
@@ -74,7 +74,7 @@ This will produce the following:
 
 ## API
 
-Constructur: `new TerminalRenderer([options])`
+Constructur: `new TerminalRenderer(options)`
 
 ### `options`
 
