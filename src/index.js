@@ -628,14 +628,16 @@ function colorizeHighlightNode(node, theme, isTop = false) {
     return isTop ? (theme.default ?? identity)(node) : node;
   }
 
-  if (node.scope) {
+  if (node.kind) {
     const colorized = node.children
-      .map((n) => colorizeHighlightNode(n))
+      .map((n) => colorizeHighlightNode(n, theme))
       .join('');
-    return (theme[node.scope] ?? identity)(colorized);
+    return (theme[node.kind] ?? identity)(colorized);
   }
 
-  return node.children.map((n) => colorizeHighlightNode(n, true)).join('');
+  return node.children
+    .map((n) => colorizeHighlightNode(n, theme, true))
+    .join('');
 }
 
 function highlight(code, language, opts) {
@@ -652,7 +654,7 @@ function highlight(code, language, opts) {
         language
       });
       const nodes = result.emitter.rootNode;
-      return colorizeHighlightNode(nodes);
+      return colorizeHighlightNode(nodes, opts.highlightOptions.theme);
     } catch (e) {}
   }
 
