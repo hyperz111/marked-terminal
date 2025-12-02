@@ -37,11 +37,7 @@ export interface RendererOptions {
   /** Formatter for text. */
   text?: Formatter;
   /** Formats the bulletpoints and numbers for lists. */
-  list?: (
-    body: string,
-    ordered: boolean,
-    indent: RendererOptions['tab']
-  ) => string;
+  list?: (body: string, ordered: boolean, indent: string) => string;
   /** Function for overriding the default image handling. */
   image?: (href: string, title: string, text: string) => string;
   /** Reflow. */

@@ -50,7 +50,7 @@ function markup(str) {
   return stripTermEsc(marked(str, { renderer: r }));
 }
 
-describe('e2', function () {
+describe('e2e', function () {
   beforeEach(function () {
     resetMarked();
   });
