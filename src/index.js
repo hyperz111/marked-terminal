@@ -649,12 +649,13 @@ function highlight(code, language, opts) {
 
   if (!!language) {
     try {
+      const { theme, ignoreIllegals } = opts.highlightOptions;
       const result = hljs.highlight(code, {
-        ...opts.highlightOptions,
+        ignoreIllegals,
         language
       });
       const nodes = result.emitter.rootNode;
-      return colorizeHighlightNode(nodes, opts.highlightOptions.theme);
+      return colorizeHighlightNode(nodes, theme);
     } catch (e) {}
   }
 
