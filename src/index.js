@@ -273,8 +273,8 @@ class TerminalRenderer {
       }
     }
     const table = new Table({
-      head: generateTableRow(header)[0],
-      ...this.tableSettings
+      ...this.tableSettings,
+      head: generateTableRow(header)[0]
     });
 
     generateTableRow(body, this.transform).forEach(function (row) {

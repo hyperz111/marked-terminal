@@ -53,7 +53,7 @@ export interface RendererOptions {
   /** The size of tabs in number of spaces or as tab characters. */
   tab?: string | number;
   /** Options passed to `cli-table3`. */
-  tableOptions?: TableConstructorOptions;
+  tableOptions?: Omit<TableConstructorOptions, 'head'>;
   /** Highlight Options */
   highlightOptions?: HighlightOptions;
 }
