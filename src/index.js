@@ -1,7 +1,7 @@
 import colors from '@colors/colors/safe.js';
 import Table from 'cli-table3';
 import hljs from 'highlight.js';
-import emojilib from 'emojilib';
+import emojiData from 'emojilib/simplemap.json' with { type: 'json' };
 import supportsHyperlinks from 'supports-hyperlinks';
 import textLength from 'string-width';
 
@@ -13,9 +13,6 @@ const COLON_REPLACER = '*#COLON|*';
 const COLON_REPLACER_REGEXP = new RegExp(escapeRegExp(COLON_REPLACER), 'g');
 
 const TAB_ALLOWED_CHARACTERS = ['\t'];
-const emojiData = Object.fromEntries(
-  Object.entries(emojilib.lib).map(([name, { char }]) => [name, char])
-);
 
 // HARD_RETURN holds a character sequence used to indicate text has a
 // hard (no-reflowing) line break.  Previously \r and \r\n were turned
