@@ -1,6 +1,7 @@
+import { beforeEach, describe, it } from 'node:test';
 import { notEqual, equal } from 'assert';
 import { TerminalRenderer } from '../src/index.js';
-import marked, { resetMarked } from './_marked.js';
+import marked, { resetMarked } from './utils/marked.js';
 
 var identity = function (o) {
   return o;

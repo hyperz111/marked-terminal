@@ -1,4 +1,4 @@
-import marked from '../tests/_marked.js';
+import marked from '../tests/utils/marked.js';
 import colors from '@colors/colors/safe.js';
 import { TerminalRenderer } from '../src/index.js';
 

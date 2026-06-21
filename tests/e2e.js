@@ -1,8 +1,9 @@
+import { beforeEach, describe, it } from 'node:test';
 import { equal } from 'assert';
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { TerminalRenderer } from '../src/index.js';
-import marked, { resetMarked } from './_marked.js';
+import marked, { resetMarked } from './utils/marked.js';
 import { fileURLToPath } from 'url';
 
 var identity = function (o) {

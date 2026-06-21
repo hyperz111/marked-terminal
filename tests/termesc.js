@@ -1,3 +1,4 @@
+import { describe, it } from 'node:test';
 import { equal } from 'assert';
 import { TerminalRenderer } from '../src/index.js';
 

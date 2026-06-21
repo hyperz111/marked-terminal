@@ -14,8 +14,8 @@
     "node": ">=20.19"
   },
   "scripts": {
-    "test": "cross-env FORCE_HYPERLINK=0 mocha tests/*.js --reporter spec",
-    "format": "prettier -w src example tests/*.js package.json"
+    "test": "node --test --import=./tests/utils/hook.js tests/*.js",
+    "format": "prettier -w src example tests/**/*.js package.json"
   },
   "files": [
     "src"
@@ -44,9 +44,7 @@
     "example": "example"
   },
   "devDependencies": {
-    "cross-env": "^7.0.3",
     "marked": "^16.0.0",
-    "mocha": "^11.0.1",
     "prettier": "^3.7.1"
   },
   "repository": {
