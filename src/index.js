@@ -18,9 +18,9 @@ const TAB_ALLOWED_CHARACTERS = ['\t'];
 // hard (no-reflowing) line break.  Previously \r and \r\n were turned
 // into \n in marked's lexer- preprocessing step. So \r is safe to use
 // to indicate a hard (non-reflowed) return.
-const HARD_RETURN = '\r',
-  HARD_RETURN_RE = new RegExp(HARD_RETURN),
-  HARD_RETURN_GFM_RE = new RegExp(HARD_RETURN + '|<br />');
+const HARD_RETURN = '\r';
+const HARD_RETURN_RE = new RegExp(HARD_RETURN);
+const HARD_RETURN_GFM_RE = new RegExp(HARD_RETURN + '|<br />');
 
 const defaultOptions = {
   code: colors.yellow,
@@ -96,12 +96,14 @@ const defaultHighlightTheme = {
 
 class TerminalRenderer {
   constructor(options = {}) {
-    this.o = { ...defaultOptions, ...options };
-    this.tab = sanitizeTab(this.o.tab, defaultOptions.tab);
-    this.tableSettings = this.o.tableOptions;
-    this.emoji = this.o.emoji ? insertEmojis : identity;
-    this.unescape = this.o.unescape ? unescapeEntities : identity;
-    this.o.highlightOptions = {
+    this.markedTerminalOptions = { ...defaultOptions, ...options };
+    this.tab = sanitizeTab(this.markedTerminalOptions.tab, defaultOptions.tab);
+    this.tableSettings = this.markedTerminalOptions.tableOptions;
+    this.emoji = this.markedTerminalOptions.emoji ? insertEmojis : identity;
+    this.unescape = this.markedTerminalOptions.unescape
+      ? unescapeEntities
+      : identity;
+    this.markedTerminalOptions.highlightOptions = {
       theme: {
         ...defaultHighlightTheme,
         ...options.highlightOptions?.theme
@@ -124,30 +126,38 @@ class TerminalRenderer {
     if (typeof text === 'object') {
       text = text.tokens ? this.parser.parseInline(text.tokens) : text.text;
     }
-    return this.o.text(text);
+
+    return this.markedTerminalOptions.text(text);
   }
 
-  code(code, lang, escaped) {
+  code(code, language, escaped) {
     if (typeof code === 'object') {
-      lang = code.lang;
+      language = code.lang;
       escaped = !!code.escaped;
       code = code.text;
     }
-    return section(indentify(this.tab, highlight(code, lang, this.o)));
+
+    return section(
+      indentify(this.tab, highlight(code, language, this.markedTerminalOptions))
+    );
   }
 
   blockquote(quote) {
     if (typeof quote === 'object') {
       quote = this.parser.parse(quote.tokens);
     }
-    return section(this.o.blockquote(indentify(this.tab, quote.trim())));
+
+    return section(
+      this.markedTerminalOptions.blockquote(indentify(this.tab, quote.trim()))
+    );
   }
 
   html(html) {
     if (typeof html === 'object') {
       html = html.text;
     }
-    return this.o.html(html);
+
+    return this.markedTerminalOptions.html(html);
   }
 
   heading(text, level) {
@@ -157,18 +167,36 @@ class TerminalRenderer {
     }
     text = this.transform(text);
 
-    const prefix = this.o.showSectionPrefix ? '#'.repeat(level) + ' ' : '';
-    text = prefix + text;
-    if (this.o.reflowText) {
-      text = reflowText(text, this.o.width, this.options.gfm);
+    const prefix = this.markedTerminalOptions.showSectionPrefix
+      ? `${'#'.repeat(level)} `
+      : '';
+    text = `${prefix}${text}`;
+
+    if (this.markedTerminalOptions.reflowText) {
+      text = reflowText(
+        text,
+        this.markedTerminalOptions.width,
+        this.options.gfm
+      );
     }
+
     return section(
-      level === 1 ? this.o.firstHeading(text) : this.o.heading(text)
+      level === 1
+        ? this.markedTerminalOptions.firstHeading(text)
+        : this.markedTerminalOptions.heading(text)
     );
   }
 
   hr() {
-    return section(this.o.hr(hr('-', this.o.reflowText && this.o.width)));
+    return section(
+      this.markedTerminalOptions.hr(
+        hr(
+          '-',
+          this.markedTerminalOptions.reflowText &&
+            this.markedTerminalOptions.width
+        )
+      )
+    );
   }
 
   list(body, ordered) {
@@ -183,7 +211,8 @@ class TerminalRenderer {
         body += this.listitem(listToken.items[j]);
       }
     }
-    body = this.o.list(body, ordered, this.tab);
+
+    body = this.markedTerminalOptions.list(body, ordered, this.tab);
     return section(fixNestedLists(indentLines(this.tab, body), this.tab));
   }
 
@@ -195,53 +224,65 @@ class TerminalRenderer {
         const checkbox = this.checkbox({ checked: !!item.checked });
         if (item.loose) {
           if (item.tokens.length > 0 && item.tokens[0].type === 'paragraph') {
-            item.tokens[0].text = checkbox + ' ' + item.tokens[0].text;
+            item.tokens[0].text = `${checkbox} ${item.tokens[0].text}`;
             if (
               item.tokens[0].tokens &&
               item.tokens[0].tokens.length > 0 &&
               item.tokens[0].tokens[0].type === 'text'
             ) {
-              item.tokens[0].tokens[0].text =
-                checkbox + ' ' + item.tokens[0].tokens[0].text;
+              item.tokens[0].tokens[0].text = `${checkbox} ${item.tokens[0].tokens[0].text}`;
             }
           } else {
             item.tokens.unshift({
               type: 'text',
-              raw: checkbox + ' ',
-              text: checkbox + ' '
+              raw: `${checkbox} `,
+              text: `${checkbox} `
             });
           }
         } else {
-          text += checkbox + ' ';
+          text += `${checkbox} `;
         }
       }
 
       text += this.parser.parse(item.tokens, !!item.loose);
     }
-    const transform = compose(this.o.listitem, this.transform);
+    const transform = compose(
+      this.markedTerminalOptions.listitem,
+      this.transform
+    );
     const isNested = text.indexOf('\n') !== -1;
     if (!isNested) text = transform(text);
 
     // Use BULLET_POINT as a marker for ordered or unordered list item
-    return '\n' + BULLET_POINT + text;
+    return `\n${BULLET_POINT}${text}`;
   }
 
   checkbox(checked) {
     if (typeof checked === 'object') {
       checked = checked.checked;
     }
-    return '[' + (checked ? 'X' : ' ') + '] ';
+
+    return `[${checked ? 'X' : ' '}] `;
   }
 
   paragraph(text) {
     if (typeof text === 'object') {
       text = this.parser.parseInline(text.tokens);
     }
-    const transform = compose(this.o.paragraph, this.transform);
+
+    const transform = compose(
+      this.markedTerminalOptions.paragraph,
+      this.transform
+    );
     text = transform(text);
-    if (this.o.reflowText) {
-      text = reflowText(text, this.o.width, this.options.gfm);
+    if (this.markedTerminalOptions.reflowText) {
+      text = reflowText(
+        text,
+        this.markedTerminalOptions.width,
+        this.options.gfm
+      );
     }
+
     return section(text);
   }
 
@@ -269,29 +310,34 @@ class TerminalRenderer {
         body += this.tablerow({ text: cell });
       }
     }
+
     const table = new Table({
       ...this.tableSettings,
       head: generateTableRow(header)[0]
     });
 
-    generateTableRow(body, this.transform).forEach(function (row) {
+    const rows = generateTableRow(body, this.transform);
+    for (const row of rows) {
       table.push(row);
-    });
-    return section(this.o.table(table.toString()));
+    }
+
+    return section(this.markedTerminalOptions.table(table.toString()));
   }
 
   tablerow(content) {
     if (typeof content === 'object') {
       content = content.text;
     }
-    return TABLE_ROW_WRAP + content + TABLE_ROW_WRAP + '\n';
+
+    return `${TABLE_ROW_WRAP}${content}${TABLE_ROW_WRAP}\n`;
   }
 
   tablecell(content) {
     if (typeof content === 'object') {
       content = this.parser.parseInline(content.tokens);
     }
-    return content + TABLE_CELL_SPLIT;
+
+    return `${content}${TABLE_CELL_SPLIT}`;
   }
 
   // span level renderer
@@ -299,34 +345,40 @@ class TerminalRenderer {
     if (typeof text === 'object') {
       text = this.parser.parseInline(text.tokens);
     }
-    return this.o.strong(text);
+
+    return this.markedTerminalOptions.strong(text);
   }
 
   em(text) {
     if (typeof text === 'object') {
       text = this.parser.parseInline(text.tokens);
     }
-    text = fixHardReturn(text, this.o.reflowText);
-    return this.o.em(text);
+
+    text = fixHardReturn(text, this.markedTerminalOptions.reflowText);
+    return this.markedTerminalOptions.em(text);
   }
 
   codespan(text) {
     if (typeof text === 'object') {
       text = text.text;
     }
-    text = fixHardReturn(text, this.o.reflowText);
-    return this.o.codespan(text.replace(/:/g, COLON_REPLACER));
+
+    text = fixHardReturn(text, this.markedTerminalOptions.reflowText);
+    return this.markedTerminalOptions.codespan(
+      text.replace(/:/g, COLON_REPLACER)
+    );
   }
 
   br() {
-    return this.o.reflowText ? HARD_RETURN : '\n';
+    return this.markedTerminalOptions.reflowText ? HARD_RETURN : '\n';
   }
 
   del(text) {
     if (typeof text === 'object') {
       text = this.parser.parseInline(text.tokens);
     }
-    return this.o.del(text);
+
+    return this.markedTerminalOptions.del(text);
   }
 
   link(href, title, text) {
@@ -342,33 +394,35 @@ class TerminalRenderer {
         prot = decodeURIComponent(unescape(href))
           .replace(/[^\w:]/g, '')
           .toLowerCase();
-      } catch (e) {
+      } catch {
         return '';
       }
+
       if (prot.indexOf('javascript:') === 0) {
         return '';
       }
     }
 
     const hasText = text && text !== href;
-
     let out = '';
 
     if (supportsHyperlinks.stdout) {
-      let link = '';
-      if (text) {
-        link = this.o.href(this.emoji(text));
-      } else {
-        link = this.o.href(href);
-      }
+      let link = this.markedTerminalOptions.href(
+        text ? this.emoji(text) : href
+      );
       // textLength breaks on '+' in URLs
       out = `\u001B]8;;${href.replace(/\+/g, '%20')}\u0007${link}\u001B]8;;\u0007`;
     } else {
-      if (hasText) out += this.emoji(text) + ' (';
-      out += this.o.href(href);
-      if (hasText) out += ')';
+      if (hasText) {
+        out += `${this.emoji(text)} (`;
+      }
+      out += this.markedTerminalOptions.href(href);
+      if (hasText) {
+        out += ')';
+      }
     }
-    return this.o.link(out);
+
+    return this.markedTerminalOptions.link(out);
   }
 
   image(href, title, text) {
@@ -378,12 +432,16 @@ class TerminalRenderer {
       href = href.href;
     }
 
-    if (typeof this.o.image === 'function') {
-      return this.o.image(href, title, text);
+    if (typeof this.markedTerminalOptions.image === 'function') {
+      return this.markedTerminalOptions.image(href, title, text);
     }
-    let out = '![' + text;
-    if (title) out += ' – ' + title;
-    return out + '](' + href + ')\n';
+
+    let out = `![${text}`;
+    if (title) {
+      out += ` – ${title}`;
+    }
+
+    return `${out}](${href})\n`;
   }
 }
 
@@ -391,43 +449,45 @@ function fixHardReturn(text, reflow) {
   return reflow ? text.replace(HARD_RETURN, /\n/g) : text;
 }
 
+const functions = [
+  'text',
+  'code',
+  'blockquote',
+  'html',
+  'heading',
+  'hr',
+  'list',
+  'listitem',
+  'checkbox',
+  'paragraph',
+  'table',
+  'tablerow',
+  'tablecell',
+  'strong',
+  'em',
+  'codespan',
+  'br',
+  'del',
+  'link',
+  'image'
+];
+
 function markedTerminal(options) {
-  const r = new TerminalRenderer(options);
+  const renderer = new TerminalRenderer(options);
 
-  const funcs = [
-    'text',
-    'code',
-    'blockquote',
-    'html',
-    'heading',
-    'hr',
-    'list',
-    'listitem',
-    'checkbox',
-    'paragraph',
-    'table',
-    'tablerow',
-    'tablecell',
-    'strong',
-    'em',
-    'codespan',
-    'br',
-    'del',
-    'link',
-    'image'
-  ];
-
-  return funcs.reduce(
-    (extension, func) => {
-      extension.renderer[func] = function (...args) {
-        r.options = this.options;
-        r.parser = this.parser;
-        return r[func](...args);
-      };
-      return extension;
-    },
-    { renderer: {}, useNewRenderer: true }
-  );
+  return {
+    renderer: Object.fromEntries(
+      functions.map((function_) => [
+        function_,
+        function (...arguments_) {
+          renderer.options = this.options;
+          renderer.parser = this.parser;
+          return renderer[function_](...arguments_);
+        }
+      ])
+    ),
+    useNewRenderer: true
+  };
 }
 
 export { TerminalRenderer, markedTerminal };
@@ -437,24 +497,24 @@ export { TerminalRenderer, markedTerminal };
 function reflowText(text, width, gfm) {
   // Hard break was inserted by TerminalRenderer.prototype.br or is
   // <br /> when gfm is true
-  const splitRe = gfm ? HARD_RETURN_GFM_RE : HARD_RETURN_RE,
-    sections = text.split(splitRe),
-    reflowed = [];
+  const splitRegex = gfm ? HARD_RETURN_GFM_RE : HARD_RETURN_RE;
+  const sections = text.split(splitRegex);
+  const reflowed = [];
 
-  sections.forEach(function (section) {
+  for (const section of sections) {
     // Split the section by escape codes so that we can
     // deal with them separately.
     const fragments = section.split(/(\u001b\[(?:\d{1,3})(?:;\d{1,3})*m)/g);
     let column = 0;
     let currentLine = '';
-    let lastWasEscapeChar = false;
+    let lastWasEscapeCharacter = false;
 
     while (fragments.length) {
       const fragment = fragments[0];
 
       if (fragment === '') {
         fragments.splice(0, 1);
-        lastWasEscapeChar = false;
+        lastWasEscapeCharacter = false;
         continue;
       }
 
@@ -463,7 +523,7 @@ function reflowText(text, width, gfm) {
       if (!textLength(fragment)) {
         currentLine += fragment;
         fragments.splice(0, 1);
-        lastWasEscapeChar = true;
+        lastWasEscapeCharacter = true;
         continue;
       }
 
@@ -472,7 +532,9 @@ function reflowText(text, width, gfm) {
       for (let i = 0; i < words.length; i++) {
         let word = words[i];
         let addSpace = column != 0;
-        if (lastWasEscapeChar) addSpace = false;
+        if (lastWasEscapeCharacter) {
+          addSpace = false;
+        }
 
         // If adding the new word overflows the required width
         if (column + word.length + addSpace > width) {
@@ -485,18 +547,22 @@ function reflowText(text, width, gfm) {
           } else {
             // If the new word is longer than the required width
             // split this word into smaller parts.
-            const w = word.substr(0, width - column - addSpace);
-            if (addSpace) currentLine += ' ';
+            const w = word.slice(0, width - column - Number(addSpace));
+            if (addSpace) {
+              currentLine += ' ';
+            }
             currentLine += w;
             reflowed.push(currentLine);
             currentLine = '';
             column = 0;
 
-            word = word.substr(w.length);
+            word = word.slice(w.length);
             while (word.length) {
-              const w = word.substr(0, width);
+              const w = word.slice(0, width);
 
-              if (!w.length) break;
+              if (!w.length) {
+                break;
+              }
 
               if (w.length < width) {
                 currentLine = w;
@@ -504,7 +570,7 @@ function reflowText(text, width, gfm) {
                 break;
               } else {
                 reflowed.push(w);
-                word = word.substr(width);
+                word = word.slice(width);
               }
             }
           }
@@ -518,93 +584,87 @@ function reflowText(text, width, gfm) {
           column += word.length;
         }
 
-        lastWasEscapeChar = false;
+        lastWasEscapeCharacter = false;
       }
 
       fragments.splice(0, 1);
     }
 
-    if (textLength(currentLine)) reflowed.push(currentLine);
-  });
+    if (textLength(currentLine)) {
+      reflowed.push(currentLine);
+    }
+  }
 
   return reflowed.join('\n');
 }
 
 function indentLines(indent, text) {
-  return text.replace(/(^|\n)(.+)/g, '$1' + indent + '$2');
+  return text.replace(/(^|\n)(.+)/g, `$1${indent}$2`);
 }
 
 function indentify(indent, text) {
-  if (!text) return text;
-  return indent + text.split('\n').join('\n' + indent);
+  if (!text) {
+    return text;
+  }
+  return `${indent}${text.split('\n').join(`\n${indent}`)}`;
 }
 
 const BULLET_POINT_REGEX = '\\*';
 const NUMBERED_POINT_REGEX = '\\d+\\.';
-const POINT_REGEX =
-  '(?:' + [BULLET_POINT_REGEX, NUMBERED_POINT_REGEX].join('|') + ')';
+const POINT_REGEX = `(?:${BULLET_POINT_REGEX}|${NUMBERED_POINT_REGEX})`;
 
 // Prevents nested lists from joining their parent list's last line
 function fixNestedLists(body, indent) {
   const regex = new RegExp(
-    '' +
-      '(\\S(?: |  )?)' + // Last char of current point, plus one or two spaces
-      // to allow trailing spaces
-      '((?:' +
-      indent +
-      ')+)' + // Indentation of sub point
-      '(' +
-      POINT_REGEX +
-      '(?:.*)+)$',
+    `(\\S(?: |  )?)((?:${indent})+)(${POINT_REGEX}(?:.*)+)$`,
     'gm'
-  ); // Body of subpoint
-  return body.replace(regex, '$1\n' + indent + '$2$3');
+  );
+  return body.replace(regex, `$1\n${indent}$2$3`);
 }
 
 function isPointedLine(line, indent) {
-  return line.match('^(?:' + indent + ')*' + POINT_REGEX);
+  return line.match(`^(?:${indent})*${POINT_REGEX}`);
 }
 
-function toSpaces(str) {
-  return ' '.repeat(str.length);
+function toSpaces(string) {
+  return ' '.repeat(string.length);
 }
 
 const BULLET_POINT = '* ';
 function bulletPointLine(indent, line) {
-  return isPointedLine(line, indent) ? line : toSpaces(BULLET_POINT) + line;
+  return isPointedLine(line, indent)
+    ? line
+    : `${toSpaces(BULLET_POINT)}${line}`;
 }
 
 function bulletPointLines(lines, indent) {
-  const transform = bulletPointLine.bind(null, indent);
-  return lines.split('\n').filter(identity).map(transform).join('\n');
+  return lines
+    .split('\n')
+    .filter(identity)
+    .map((line) => bulletPointLine(indent, line))
+    .join('\n');
 }
 
-function numberedPoint(n) {
-  return n + '. ';
-}
-
-function numberedLine(indent, line, num) {
+function numberedLine(indent, line, number) {
   return isPointedLine(line, indent)
     ? {
-        num: num + 1,
-        line: line.replace(BULLET_POINT, numberedPoint(num + 1))
+        number: number + 1,
+        line: line.replace(BULLET_POINT, `${number + 1}. `)
       }
     : {
-        num: num,
-        line: toSpaces(numberedPoint(num)) + line
+        number: number,
+        line: toSpaces(`${number}. `) + line
       };
 }
 
 function numberedLines(lines, indent) {
-  const transform = numberedLine.bind(null, indent);
-  let num = 0;
+  let number = 0;
   return lines
     .split('\n')
     .filter(identity)
     .map((line) => {
-      const numbered = transform(line, num);
-      num = numbered.num;
-
+      const numbered = numberedLine(indent, line, number);
+      number = numbered.number;
       return numbered.line;
     })
     .join('\n');
@@ -612,12 +672,11 @@ function numberedLines(lines, indent) {
 
 function list(body, ordered, indent) {
   body = body.trim();
-  body = ordered ? numberedLines(body, indent) : bulletPointLines(body, indent);
-  return body;
+  return ordered ? numberedLines(body, indent) : bulletPointLines(body, indent);
 }
 
 function section(text) {
-  return text + '\n\n';
+  return `${text}\n\n`;
 }
 
 function colorizeHighlightNode(node, theme, isTop = false) {
@@ -637,64 +696,65 @@ function colorizeHighlightNode(node, theme, isTop = false) {
     .join('');
 }
 
-function highlight(code, language, opts) {
-  if (!colors.enabled) return code;
+function highlight(code, language, options) {
+  if (!colors.enabled) {
+    return code;
+  }
 
-  const style = opts.code;
+  code = fixHardReturn(code, options.reflowText);
 
-  code = fixHardReturn(code, opts.reflowText);
-
-  if (!!language) {
+  if (language) {
     try {
-      const { theme, ignoreIllegals } = opts.highlightOptions;
+      const { theme, ignoreIllegals } = options.highlightOptions;
       const result = hljs.highlight(code, {
         ignoreIllegals,
         language
       });
       const nodes = result.emitter.rootNode;
       return colorizeHighlightNode(nodes, theme);
-    } catch (e) {}
+    } catch {}
   }
 
-  return style(code);
+  return options.code(code);
 }
 
 function insertEmojis(text) {
-  return text.replace(/:([A-Za-z0-9_\-\+]+?):/g, function (emojiString) {
+  return text.replace(/:([A-Za-z0-9_\-\+]+?):/g, (emojiString) => {
     const emojiSign = emojiData[emojiString.slice(1, -1)];
-    if (!emojiSign) return emojiString;
-    return emojiSign + ' ';
+    return emojiSign ? `${emojiSign} ` : emojiString;
   });
 }
 
-function hr(inputHrStr, length) {
-  length = length || process.stdout.columns;
-  return inputHrStr.repeat(length - 1);
+function hr(separatorCharacter, length) {
+  length ||= globalThis.process?.stdout?.columns;
+  return separatorCharacter.repeat(length - 1);
 }
 
-function undoColon(str) {
-  return str.replace(COLON_REPLACER_REGEXP, ':');
+function undoColon(string) {
+  return string.replace(COLON_REPLACER_REGEXP, ':');
 }
 
-function generateTableRow(text, escape) {
-  if (!text) return [];
-  escape = escape || identity;
-  const lines = escape(text).split('\n');
+function generateTableRow(text, escaper = identity) {
+  if (!text) {
+    return [];
+  }
 
+  const lines = escaper(text).split('\n');
   const data = [];
-  lines.forEach(function (line) {
-    if (!line) return;
-    const parsed = line
-      .replace(TABLE_ROW_WRAP_REGEXP, '')
-      .split(TABLE_CELL_SPLIT);
 
-    data.push(parsed.splice(0, parsed.length - 1));
-  });
+  for (const line of lines) {
+    if (line) {
+      data.push(
+        line.replace(TABLE_ROW_WRAP_REGEXP, '').split(TABLE_CELL_SPLIT)
+      );
+    }
+  }
+
   return data;
 }
 
-function escapeRegExp(str) {
-  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&');
+function escapeRegExp(string) {
+  return string.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&');
 }
 
 function unescapeEntities(html) {
@@ -706,30 +766,27 @@ function unescapeEntities(html) {
     .replace(/&#39;/g, "'");
 }
 
-function identity(str) {
-  return str;
+function identity(string) {
+  return string;
 }
 
-function compose(...funcs) {
-  return function (...args) {
-    let i = funcs.length;
-    for (; i-- > 0; ) {
-      args = [funcs[i](...args)];
+function compose(...functions) {
+  return (...arguments_) => {
+    let index = functions.length;
+    for (; index-- > 0; ) {
+      arguments_ = [functions[index](...arguments_)];
     }
-    return args[0];
+    return arguments_[0];
   };
-}
-
-function isAllowedTabString(string) {
-  return TAB_ALLOWED_CHARACTERS.some(function (char) {
-    return string.match('^(' + char + ')+$');
-  });
 }
 
 function sanitizeTab(tab, fallbackTab) {
   if (typeof tab === 'number') {
     return ' '.repeat(tab);
-  } else if (typeof tab === 'string' && isAllowedTabString(tab)) {
+  } else if (
+    typeof tab === 'string' &&
+    TAB_ALLOWED_CHARACTERS.some((character) => tab.match(`^(${character})+$`))
+  ) {
     return tab;
   } else {
     return ' '.repeat(fallbackTab);
