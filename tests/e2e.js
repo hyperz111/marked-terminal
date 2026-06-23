@@ -1,64 +1,33 @@
 import { beforeEach, describe, it } from 'node:test';
-import { equal } from 'assert';
-import { readFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { TerminalRenderer } from '../src/index.js';
-import marked, { resetMarked } from './utils/marked.js';
-import { fileURLToPath } from 'url';
+import { stripVTControlCharacters } from 'node:util';
+import { equal } from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import {
+  marked,
+  resetMarked,
+  install,
+  defaultOptions
+} from './utils/marked.js';
 
-var identity = function (o) {
-  return o;
-};
+const getFixtureFile = (fileName) =>
+  readFileSync(resolve(import.meta.dirname, 'fixtures', fileName), 'utf8');
 
-function stripTermEsc(str) {
-  return str.replace(/\u001b\[\d{1,2}m/g, '');
-}
-
-function getFixtureFile(fileName) {
-  return readFileSync(
-    resolve(dirname(fileURLToPath(import.meta.url)), 'fixtures/', fileName),
-    {
-      encoding: 'utf8'
+[true, false].forEach((legacy) => {
+  describe(`e2e (${legacy ? 'TerminalRenderer' : 'markedTerminal'})`, () => {
+    function markup(string) {
+      return stripVTControlCharacters(marked(string));
     }
-  );
-}
 
-var opts = [
-  'code',
-  'blockquote',
-  'html',
-  'heading',
-  'firstHeading',
-  'hr',
-  'listitem',
-  'table',
-  'paragraph',
-  'strong',
-  'em',
-  'codespan',
-  'del',
-  'link',
-  'href'
-];
+    beforeEach(() => {
+      resetMarked();
+    });
 
-var defaultOptions = {};
-opts.forEach(function (opt) {
-  defaultOptions[opt] = identity;
-});
-
-function markup(str) {
-  var r = new TerminalRenderer(defaultOptions);
-  return stripTermEsc(marked(str, { renderer: r }));
-}
-
-describe('e2e', function () {
-  beforeEach(function () {
-    resetMarked();
-  });
-
-  it('should render a document full of different supported syntax', function () {
-    const actual = markup(getFixtureFile('e2e.md'));
-    const expected = getFixtureFile('e2e.result.txt');
-    equal(actual, expected);
+    it('should render a document full of different supported syntax', () => {
+      install(legacy, defaultOptions);
+      const actual = markup(getFixtureFile('e2e.md'));
+      const expected = getFixtureFile('e2e.result.txt');
+      equal(actual, expected);
+    });
   });
 });

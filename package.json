@@ -15,7 +15,7 @@
   },
   "scripts": {
     "test": "node --test --import=./tests/utils/hook.js tests/*.js",
-    "format": "prettier -w src example tests/**/*.js package.json"
+    "format": "prettier -w **/*.{js,json,ts}"
   },
   "files": [
     "src"

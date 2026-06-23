@@ -1,117 +1,84 @@
 import { beforeEach, describe, it } from 'node:test';
-import { notEqual, equal } from 'assert';
-import { TerminalRenderer } from '../src/index.js';
-import marked, { resetMarked } from './utils/marked.js';
+import { notEqual, equal } from 'node:assert/strict';
+import {
+  marked,
+  resetMarked,
+  install,
+  defaultOptions
+} from './utils/marked.js';
 
-var identity = function (o) {
-  return o;
+const options = {
+  ...defaultOptions,
+  emoji: false
 };
 
-var opts = [
-  'code',
-  'blockquote',
-  'html',
-  'heading',
-  'firstHeading',
-  'hr',
-  'listitem',
-  'table',
-  'paragraph',
-  'strong',
-  'em',
-  'codespan',
-  'del',
-  'link',
-  'href'
-];
-
-var defaultOptions = {};
-opts.forEach(function (opt) {
-  defaultOptions[opt] = identity;
-});
-
-defaultOptions.emoji = false;
-
-describe('Options', function () {
-  var r = new TerminalRenderer(defaultOptions);
-
-  beforeEach(function () {
-    resetMarked();
-  });
-
-  it('should not translate emojis', function () {
-    var markdownText = 'Some :emoji:';
-
-    notEqual(
-      marked(markdownText, {
-        renderer: r
-      }).indexOf(':emoji:'),
-      -1
-    );
-  });
-
-  it('should change tabs by space size', function () {
-    var options = Object.assign({}, defaultOptions, { tab: 4 });
-    var r = new TerminalRenderer(options);
-
-    var blockquoteText = '> Blockquote';
-    equal(marked(blockquoteText, { renderer: r }), '    Blockquote\n\n');
-
-    var listText = '* List Item';
-    equal(marked(listText, { renderer: r }), '    * List Item\n\n');
-  });
-
-  it('should use default tabs if passing not supported string', function () {
-    var options = Object.assign({}, defaultOptions, { tab: 'dsakdskajhdsa' });
-    var r = new TerminalRenderer(options);
-
-    var blockquoteText = '> Blockquote';
-    equal(marked(blockquoteText, { renderer: r }), '    Blockquote\n\n');
-
-    var listText = '* List Item';
-    equal(marked(listText, { renderer: r }), '    * List Item\n\n');
-  });
-
-  it('should change tabs by allowed characters', function () {
-    var options = Object.assign({}, defaultOptions, { tab: '\t' });
-    var r = new TerminalRenderer(options);
-
-    var blockquoteText = '> Blockquote';
-    equal(marked(blockquoteText, { renderer: r }), '\tBlockquote\n\n');
-
-    var listText = '* List Item';
-    equal(marked(listText, { renderer: r }), '\t* List Item\n\n');
-  });
-
-  it('should support mulitple tab characters', function () {
-    var options = Object.assign({}, defaultOptions, { tab: '\t\t' });
-    var r = new TerminalRenderer(options);
-
-    var blockquoteText = '> Blockquote';
-    equal(marked(blockquoteText, { renderer: r }), '\t\tBlockquote\n\n');
-
-    var listText = '* List Item';
-    equal(marked(listText, { renderer: r }), '\t\t* List Item\n\n');
-  });
-
-  it('should support overriding image handling', function () {
-    var options = Object.assign({}, defaultOptions, {
-      image: function () {
-        return 'IMAGE';
-      }
+[true, false].forEach((legacy) => {
+  describe(`Options (${legacy ? 'TerminalRenderer' : 'markedTerminal'})`, () => {
+    beforeEach(() => {
+      resetMarked();
     });
-    var r = new TerminalRenderer(options);
 
-    var text = `
+    it('should not translate emojis', () => {
+      install(legacy, options);
+      const markdownText = 'Some :emoji:';
+
+      notEqual(marked(markdownText).indexOf(':emoji:'), -1);
+    });
+
+    it('should change tabs by space size', () => {
+      install(legacy, { ...options, tab: 4 });
+
+      const blockquoteText = '> Blockquote';
+      equal(marked(blockquoteText), '    Blockquote\n\n');
+
+      const listText = '* List Item';
+      equal(marked(listText), '    * List Item\n\n');
+    });
+
+    it('should use default tabs if passing not supported string', () => {
+      install(legacy, { ...options, tab: 'dsakdskajhdsa' });
+
+      const blockquoteText = '> Blockquote';
+      equal(marked(blockquoteText), '    Blockquote\n\n');
+
+      const listText = '* List Item';
+      equal(marked(listText), '    * List Item\n\n');
+    });
+
+    it('should change tabs by allowed characters', () => {
+      install(legacy, { ...options, tab: '\t' });
+
+      const blockquoteText = '> Blockquote';
+      equal(marked(blockquoteText), '\tBlockquote\n\n');
+
+      const listText = '* List Item';
+      equal(marked(listText), '\t* List Item\n\n');
+    });
+
+    it('should support mulitple tab characters', () => {
+      install(legacy, { ...options, tab: '\t\t' });
+
+      const blockquoteText = '> Blockquote';
+      equal(marked(blockquoteText), '\t\tBlockquote\n\n');
+
+      const listText = '* List Item';
+      equal(marked(listText), '\t\t* List Item\n\n');
+    });
+
+    it('should support overriding image handling', () => {
+      install(legacy, { ...options, image: () => 'IMAGE' });
+
+      const text = `
 # Title
 ![Alt text](./img.jpg)`;
-    equal(
-      marked(text, { renderer: r }),
-      `# Title
+      equal(
+        marked(text),
+        `# Title
 
 IMAGE
 
 `
-    );
+      );
+    });
   });
 });

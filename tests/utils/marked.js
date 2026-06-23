@@ -1,12 +1,9 @@
 import * as m from 'marked';
+import * as mt from '../../src/index.js';
 
-const marked = 'marked' in m ? m.marked : m.default;
+export const marked = 'marked' in m ? m.marked : m.default;
 
-resetMarked();
-
-export default marked;
-
-export function resetMarked() {
+export const resetMarked = () => {
   marked.setOptions(marked.getDefaults());
 
   if ('use' in marked) {
@@ -16,4 +13,34 @@ export function resetMarked() {
       headerIds: false
     });
   }
-}
+};
+
+resetMarked();
+
+export const install = (legacy, options = {}) => {
+  if (legacy) {
+    marked.setOptions({
+      renderer: new mt.TerminalRenderer(options)
+    });
+  } else {
+    marked.use(mt.markedTerminal(options));
+  }
+};
+
+export const defaultOptions = {
+  code: String,
+  blockquote: String,
+  html: String,
+  heading: String,
+  firstHeading: String,
+  hr: String,
+  listitem: String,
+  table: String,
+  paragraph: String,
+  strong: String,
+  em: String,
+  codespan: String,
+  del: String,
+  link: String,
+  href: String
+};
