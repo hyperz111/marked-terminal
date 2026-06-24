@@ -1,8 +1,7 @@
-import { marked } from '../tests/utils/marked.js';
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { TerminalRenderer } from '../src/index.js';
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { marked } from '../tests/utils/marked.js';
 
 // Example showing usage information from a CLI tool.
 
@@ -13,9 +12,5 @@ marked.setOptions({
 
 // Show the parsed data
 console.log(
-  marked(
-    readFileSync(
-      dirname(fileURLToPath(import.meta.url)) + '/usage.md'
-    ).toString()
-  )
+  marked(readFileSync(resolve(import.meta.dirname, 'usage.md'), 'utf8'))
 );

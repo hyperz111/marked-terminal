@@ -1,6 +1,6 @@
-import { marked } from '../tests/utils/marked.js';
 import colors from '@colors/colors/safe.js';
 import { TerminalRenderer } from '../src/index.js';
+import { marked } from '../tests/utils/marked.js';
 
 marked.setOptions({
   // Define custom renderer
@@ -10,13 +10,14 @@ marked.setOptions({
     emoji: true,
 
     // Can also override color/styling by own functions.
-    firstHeading: function (text) {
-      return '*** ' + text;
-    }
+    firstHeading: (text) => `*** ${text}`
   })
 });
 
+const text = `
+# Hello 
+This is **markdown** printed in the \`terminal\` :+1:
+`;
+
 // Show the parsed data
-console.log(
-  marked('# Hello \n\nThis is **markdown** printed in the `terminal` :+1:')
-);
+console.log(marked(text.trim()));
