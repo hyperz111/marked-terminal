@@ -152,6 +152,8 @@ const defaultHighlightTheme = {
   default: String
 };
 
+const fixHardReturn = (text, reflow) => reflow ? text.replace(HARD_RETURN, /\n/g) : text;
+
 // Munge \n's and spaces in "text" so that the number of
 // characters between \n's is less than or equal to "width".
 const reflowText = (text, width, gfm) => {
@@ -713,10 +715,6 @@ class TerminalRenderer {
   }
 }
 
-function fixHardReturn(text, reflow) {
-  return reflow ? text.replace(HARD_RETURN, /\n/g) : text;
-}
-
 const functions = [
   'text',
   'code',
@@ -740,7 +738,7 @@ const functions = [
   'image'
 ];
 
-function markedTerminal(options) {
+const markedTerminal = (options) => {
   const renderer = new TerminalRenderer(options);
 
   return {
