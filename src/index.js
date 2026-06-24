@@ -745,7 +745,10 @@ function generateTableRow(text, escaper = identity) {
   for (const line of lines) {
     if (line) {
       data.push(
-        line.replace(TABLE_ROW_WRAP_REGEXP, '').split(TABLE_CELL_SPLIT)
+        line
+          .replace(TABLE_ROW_WRAP_REGEXP, '')
+          .split(TABLE_CELL_SPLIT)
+          .slice(0, -1)
       );
     }
   }
