@@ -3,7 +3,10 @@ import Table from 'cli-table3';
 import hljs from 'highlight.js';
 import emojiData from 'emojilib/simplemap.json' with { type: 'json' };
 import supportsHyperlinks from 'supports-hyperlinks';
-import textLength from 'string-width';
+import stringWidth from 'string-width';
+
+const escapeRegExp = (string) =>
+  string.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&');
 
 const TABLE_CELL_SPLIT = '^*||*^';
 const TABLE_ROW_WRAP = '*|*|*|*';
@@ -20,7 +23,63 @@ const TAB_ALLOWED_CHARACTERS = ['\t'];
 // to indicate a hard (non-reflowed) return.
 const HARD_RETURN = '\r';
 const HARD_RETURN_RE = new RegExp(HARD_RETURN);
-const HARD_RETURN_GFM_RE = new RegExp(HARD_RETURN + '|<br />');
+const HARD_RETURN_GFM_RE = new RegExp(`${HARD_RETURN}|<br />`);
+
+const BULLET_POINT = '* ';
+const BULLET_POINT_REGEX = '\\*';
+const NUMBERED_POINT_REGEX = '\\d+\\.';
+const POINT_REGEX = `(?:${BULLET_POINT_REGEX}|${NUMBERED_POINT_REGEX})`;
+
+// Prevents nested lists from joining their parent list's last line
+const fixNestedLists = (body, indent) =>
+  body.replace(
+    new RegExp(`(\\S(?: |  )?)((?:${indent})+)(${POINT_REGEX}(?:.*)+)$`, 'gm'),
+    `$1\n${indent}$2$3`
+  );
+
+const isPointedLine = (line, indent) =>
+  line.match(`^(?:${indent})*${POINT_REGEX}`);
+
+const toSpaces = (string) => ' '.repeat(string.length);
+
+const bulletPointLine = (indent, line) =>
+  isPointedLine(line, indent) ? line : `${toSpaces(BULLET_POINT)}${line}`;
+
+const bulletPointLines = (lines, indent) =>
+  lines
+    .split('\n')
+    .filter(String)
+    .map((line) => bulletPointLine(indent, line))
+    .join('\n');
+
+const numberedLine = (indent, line, number) =>
+  isPointedLine(line, indent)
+    ? {
+        number: number + 1,
+        line: line.replace(BULLET_POINT, `${number + 1}. `)
+      }
+    : {
+        number: number,
+        line: toSpaces(`${number}. `) + line
+      };
+
+const numberedLines = (lines, indent) => {
+  let number = 0;
+  return lines
+    .split('\n')
+    .filter(String)
+    .map((line) => {
+      const numbered = numberedLine(indent, line, number);
+      number = numbered.number;
+      return numbered.line;
+    })
+    .join('\n');
+};
+
+const list = (body, ordered, indent) => {
+  body = body.trim();
+  return ordered ? numberedLines(body, indent) : bulletPointLines(body, indent);
+};
 
 const defaultOptions = {
   code: colors.yellow,
@@ -39,14 +98,13 @@ const defaultOptions = {
   del: colors.dim.gray.strikethrough,
   link: colors.blue,
   href: colors.blue.underline,
-  text: identity,
+  text: String,
   unescape: true,
   emoji: true,
   width: 80,
   showSectionPrefix: true,
   reflowText: false,
-  tab: 4,
-  tableOptions: {}
+  tab: 4
 };
 
 const defaultHighlightTheme = {
@@ -57,65 +115,275 @@ const defaultHighlightTheme = {
   number: colors.green,
   regexp: colors.red,
   string: colors.red,
-  subst: identity,
-  symbol: identity,
+  subst: String,
+  symbol: String,
   class: colors.blue,
   function: colors.yellow,
-  title: identity,
-  params: identity,
+  title: String,
+  params: String,
   comment: colors.green,
   doctag: colors.green,
   meta: colors.gray,
-  'meta-keyword': identity,
-  'meta-string': identity,
-  section: identity,
+  'meta-keyword': String,
+  'meta-string': String,
+  section: String,
   tag: colors.gray,
   name: colors.blue,
-  'builtin-name': identity,
+  'builtin-name': String,
   attr: colors.cyan,
-  attribute: identity,
-  variable: identity,
-  bullet: identity,
-  code: identity,
+  attribute: String,
+  variable: String,
+  bullet: String,
+  code: String,
   emphasis: colors.italic,
   strong: colors.bold,
-  formula: identity,
+  formula: String,
   link: colors.underline,
-  quote: identity,
-  'selector-tag': identity,
-  'selector-id': identity,
-  'selector-class': identity,
-  'selector-attr': identity,
-  'selector-pseudo': identity,
-  'template-tag': identity,
-  'template-variable': identity,
+  quote: String,
+  'selector-tag': String,
+  'selector-id': String,
+  'selector-class': String,
+  'selector-attr': String,
+  'selector-pseudo': String,
+  'template-tag': String,
+  'template-variable': String,
   addition: colors.green,
   deletion: colors.red,
-  default: identity
+  default: String
+};
+
+// Munge \n's and spaces in "text" so that the number of
+// characters between \n's is less than or equal to "width".
+const reflowText = (text, width, gfm) => {
+  // Hard break was inserted by TerminalRenderer.prototype.br or is
+  // <br /> when gfm is true
+  const splitRegex = gfm ? HARD_RETURN_GFM_RE : HARD_RETURN_RE;
+  const sections = text.split(splitRegex);
+  const reflowed = [];
+
+  for (const section of sections) {
+    // Split the section by escape codes so that we can
+    // deal with them separately.
+    const fragments = section.split(/(\u001b\[(?:\d{1,3})(?:;\d{1,3})*m)/g);
+    let column = 0;
+    let currentLine = '';
+    let lastWasEscapeCharacter = false;
+
+    while (fragments.length) {
+      const fragment = fragments[0];
+
+      if (fragment === '') {
+        fragments.splice(0, 1);
+        lastWasEscapeCharacter = false;
+        continue;
+      }
+
+      // This is an escape code - leave it whole and
+      // move to the next fragment.
+      if (!stringWidth(fragment)) {
+        currentLine += fragment;
+        fragments.splice(0, 1);
+        lastWasEscapeCharacter = true;
+        continue;
+      }
+
+      const words = fragment.split(/[ \t\n]+/);
+
+      for (let i = 0; i < words.length; i++) {
+        let word = words[i];
+        let addSpace = column != 0;
+        if (lastWasEscapeCharacter) {
+          addSpace = false;
+        }
+
+        // If adding the new word overflows the required width
+        if (column + word.length + addSpace > width) {
+          if (word.length <= width) {
+            // If the new word is smaller than the required width
+            // just add it at the beginning of a new line
+            reflowed.push(currentLine);
+            currentLine = word;
+            column = word.length;
+          } else {
+            // If the new word is longer than the required width
+            // split this word into smaller parts.
+            const w = word.slice(0, width - column - Number(addSpace));
+            if (addSpace) {
+              currentLine += ' ';
+            }
+            currentLine += w;
+            reflowed.push(currentLine);
+            currentLine = '';
+            column = 0;
+
+            word = word.slice(w.length);
+            while (word.length) {
+              const w = word.slice(0, width);
+
+              if (!w.length) {
+                break;
+              }
+
+              if (w.length < width) {
+                currentLine = w;
+                column = w.length;
+                break;
+              } else {
+                reflowed.push(w);
+                word = word.slice(width);
+              }
+            }
+          }
+        } else {
+          if (addSpace) {
+            currentLine += ' ';
+            column++;
+          }
+
+          currentLine += word;
+          column += word.length;
+        }
+
+        lastWasEscapeCharacter = false;
+      }
+
+      fragments.splice(0, 1);
+    }
+
+    if (stringWidth(currentLine)) {
+      reflowed.push(currentLine);
+    }
+  }
+
+  return reflowed.join('\n');
+};
+
+const indentLines = (indent, text) =>
+  text.replace(/(^|\n)(.+)/g, `$1${indent}$2`);
+
+const indentify = (indent, text) =>
+  text ? `${indent}${text.split('\n').join(`\n${indent}`)}` : text;
+
+const colorizeHighlightNode = (node, theme, isTop) => {
+  if (typeof node === 'string') {
+    return isTop
+      ? (theme.default ?? defaultHighlightTheme.default ?? String)(node)
+      : node;
+  }
+
+  if (node.kind) {
+    const colorized = node.children
+      .map((n) => colorizeHighlightNode(n, theme, false))
+      .join('');
+    return (theme[node.kind] ?? defaultHighlightTheme[node.kind] ?? String)(
+      colorized
+    );
+  }
+
+  return node.children
+    .map((n) => colorizeHighlightNode(n, theme, true))
+    .join('');
+};
+
+const highlight = (code, language, options) => {
+  if (!colors.enabled) {
+    return code;
+  }
+
+  code = fixHardReturn(code, options.reflowText);
+
+  if (language) {
+    try {
+      const { theme = {}, ignoreIllegals } = options.highlightOptions ?? {};
+      const result = hljs.highlight(code, {
+        ignoreIllegals,
+        language
+      });
+      const nodes = result.emitter.rootNode;
+      return colorizeHighlightNode(nodes, theme, false);
+    } catch {}
+  }
+
+  return options.code(code);
+};
+
+const section = (text) => `${text}\n\n`;
+
+const insertEmojis = (text) =>
+  text.replace(/:([A-Za-z0-9_\-\+]+?):/g, (emojiString) => {
+    const emojiSign = emojiData[emojiString.slice(1, -1)];
+    return emojiSign ? `${emojiSign} ` : emojiString;
+  });
+
+const hr = (separatorCharacter, length) => {
+  length ||= globalThis.process?.stdout?.columns;
+  return separatorCharacter.repeat(length - 1);
+};
+
+const undoColon = (string) => string.replace(COLON_REPLACER_REGEXP, ':');
+
+const generateTableRow = (text, escaper = String) => {
+  if (!text) {
+    return [];
+  }
+
+  const lines = escaper(text).split('\n');
+  const data = [];
+
+  for (const line of lines) {
+    if (line) {
+      data.push(
+        line
+          .replace(TABLE_ROW_WRAP_REGEXP, '')
+          .split(TABLE_CELL_SPLIT)
+          .slice(0, -1)
+      );
+    }
+  }
+
+  return data;
+};
+
+const unescapeEntities = (html) =>
+  html
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+
+const compose =
+  (...functions) =>
+  (...arguments_) => {
+    let index = functions.length;
+    for (; index-- > 0; ) {
+      arguments_ = [functions[index](...arguments_)];
+    }
+    return arguments_[0];
+  };
+
+const sanitizeTab = (tab, fallbackTab) => {
+  if (typeof tab === 'number') {
+    return ' '.repeat(tab);
+  } else if (
+    typeof tab === 'string' &&
+    TAB_ALLOWED_CHARACTERS.some((character) => tab.match(`^(${character})+$`))
+  ) {
+    return tab;
+  } else {
+    return ' '.repeat(fallbackTab);
+  }
 };
 
 class TerminalRenderer {
   constructor(options = {}) {
     this.markedTerminalOptions = { ...defaultOptions, ...options };
     this.tab = sanitizeTab(this.markedTerminalOptions.tab, defaultOptions.tab);
-    this.tableSettings = this.markedTerminalOptions.tableOptions;
-    this.emoji = this.markedTerminalOptions.emoji ? insertEmojis : identity;
+    this.emoji = this.markedTerminalOptions.emoji ? insertEmojis : String;
     this.unescape = this.markedTerminalOptions.unescape
       ? unescapeEntities
-      : identity;
-    this.markedTerminalOptions.highlightOptions = {
-      theme: {
-        ...defaultHighlightTheme,
-        ...options.highlightOptions?.theme
-      },
-      ignoreIllegals: options.highlightOptions?.ignoreIllegals
-    };
-
+      : String;
     this.transform = compose(undoColon, this.unescape, this.emoji);
-  }
-
-  get textLength() {
-    return textLength;
   }
 
   space() {
@@ -312,7 +580,7 @@ class TerminalRenderer {
     }
 
     const table = new Table({
-      ...this.tableSettings,
+      ...(this.markedTerminalOptions.tableOptions ?? {}),
       head: generateTableRow(header)[0]
     });
 
@@ -491,307 +759,3 @@ function markedTerminal(options) {
 }
 
 export { TerminalRenderer, markedTerminal };
-
-// Munge \n's and spaces in "text" so that the number of
-// characters between \n's is less than or equal to "width".
-function reflowText(text, width, gfm) {
-  // Hard break was inserted by TerminalRenderer.prototype.br or is
-  // <br /> when gfm is true
-  const splitRegex = gfm ? HARD_RETURN_GFM_RE : HARD_RETURN_RE;
-  const sections = text.split(splitRegex);
-  const reflowed = [];
-
-  for (const section of sections) {
-    // Split the section by escape codes so that we can
-    // deal with them separately.
-    const fragments = section.split(/(\u001b\[(?:\d{1,3})(?:;\d{1,3})*m)/g);
-    let column = 0;
-    let currentLine = '';
-    let lastWasEscapeCharacter = false;
-
-    while (fragments.length) {
-      const fragment = fragments[0];
-
-      if (fragment === '') {
-        fragments.splice(0, 1);
-        lastWasEscapeCharacter = false;
-        continue;
-      }
-
-      // This is an escape code - leave it whole and
-      // move to the next fragment.
-      if (!textLength(fragment)) {
-        currentLine += fragment;
-        fragments.splice(0, 1);
-        lastWasEscapeCharacter = true;
-        continue;
-      }
-
-      const words = fragment.split(/[ \t\n]+/);
-
-      for (let i = 0; i < words.length; i++) {
-        let word = words[i];
-        let addSpace = column != 0;
-        if (lastWasEscapeCharacter) {
-          addSpace = false;
-        }
-
-        // If adding the new word overflows the required width
-        if (column + word.length + addSpace > width) {
-          if (word.length <= width) {
-            // If the new word is smaller than the required width
-            // just add it at the beginning of a new line
-            reflowed.push(currentLine);
-            currentLine = word;
-            column = word.length;
-          } else {
-            // If the new word is longer than the required width
-            // split this word into smaller parts.
-            const w = word.slice(0, width - column - Number(addSpace));
-            if (addSpace) {
-              currentLine += ' ';
-            }
-            currentLine += w;
-            reflowed.push(currentLine);
-            currentLine = '';
-            column = 0;
-
-            word = word.slice(w.length);
-            while (word.length) {
-              const w = word.slice(0, width);
-
-              if (!w.length) {
-                break;
-              }
-
-              if (w.length < width) {
-                currentLine = w;
-                column = w.length;
-                break;
-              } else {
-                reflowed.push(w);
-                word = word.slice(width);
-              }
-            }
-          }
-        } else {
-          if (addSpace) {
-            currentLine += ' ';
-            column++;
-          }
-
-          currentLine += word;
-          column += word.length;
-        }
-
-        lastWasEscapeCharacter = false;
-      }
-
-      fragments.splice(0, 1);
-    }
-
-    if (textLength(currentLine)) {
-      reflowed.push(currentLine);
-    }
-  }
-
-  return reflowed.join('\n');
-}
-
-function indentLines(indent, text) {
-  return text.replace(/(^|\n)(.+)/g, `$1${indent}$2`);
-}
-
-function indentify(indent, text) {
-  if (!text) {
-    return text;
-  }
-  return `${indent}${text.split('\n').join(`\n${indent}`)}`;
-}
-
-const BULLET_POINT_REGEX = '\\*';
-const NUMBERED_POINT_REGEX = '\\d+\\.';
-const POINT_REGEX = `(?:${BULLET_POINT_REGEX}|${NUMBERED_POINT_REGEX})`;
-
-// Prevents nested lists from joining their parent list's last line
-function fixNestedLists(body, indent) {
-  const regex = new RegExp(
-    `(\\S(?: |  )?)((?:${indent})+)(${POINT_REGEX}(?:.*)+)$`,
-    'gm'
-  );
-  return body.replace(regex, `$1\n${indent}$2$3`);
-}
-
-function isPointedLine(line, indent) {
-  return line.match(`^(?:${indent})*${POINT_REGEX}`);
-}
-
-function toSpaces(string) {
-  return ' '.repeat(string.length);
-}
-
-const BULLET_POINT = '* ';
-function bulletPointLine(indent, line) {
-  return isPointedLine(line, indent)
-    ? line
-    : `${toSpaces(BULLET_POINT)}${line}`;
-}
-
-function bulletPointLines(lines, indent) {
-  return lines
-    .split('\n')
-    .filter(identity)
-    .map((line) => bulletPointLine(indent, line))
-    .join('\n');
-}
-
-function numberedLine(indent, line, number) {
-  return isPointedLine(line, indent)
-    ? {
-        number: number + 1,
-        line: line.replace(BULLET_POINT, `${number + 1}. `)
-      }
-    : {
-        number: number,
-        line: toSpaces(`${number}. `) + line
-      };
-}
-
-function numberedLines(lines, indent) {
-  let number = 0;
-  return lines
-    .split('\n')
-    .filter(identity)
-    .map((line) => {
-      const numbered = numberedLine(indent, line, number);
-      number = numbered.number;
-      return numbered.line;
-    })
-    .join('\n');
-}
-
-function list(body, ordered, indent) {
-  body = body.trim();
-  return ordered ? numberedLines(body, indent) : bulletPointLines(body, indent);
-}
-
-function section(text) {
-  return `${text}\n\n`;
-}
-
-function colorizeHighlightNode(node, theme, isTop = false) {
-  if (typeof node === 'string') {
-    return isTop ? (theme.default ?? identity)(node) : node;
-  }
-
-  if (node.kind) {
-    const colorized = node.children
-      .map((n) => colorizeHighlightNode(n, theme))
-      .join('');
-    return (theme[node.kind] ?? identity)(colorized);
-  }
-
-  return node.children
-    .map((n) => colorizeHighlightNode(n, theme, true))
-    .join('');
-}
-
-function highlight(code, language, options) {
-  if (!colors.enabled) {
-    return code;
-  }
-
-  code = fixHardReturn(code, options.reflowText);
-
-  if (language) {
-    try {
-      const { theme, ignoreIllegals } = options.highlightOptions;
-      const result = hljs.highlight(code, {
-        ignoreIllegals,
-        language
-      });
-      const nodes = result.emitter.rootNode;
-      return colorizeHighlightNode(nodes, theme);
-    } catch {}
-  }
-
-  return options.code(code);
-}
-
-function insertEmojis(text) {
-  return text.replace(/:([A-Za-z0-9_\-\+]+?):/g, (emojiString) => {
-    const emojiSign = emojiData[emojiString.slice(1, -1)];
-    return emojiSign ? `${emojiSign} ` : emojiString;
-  });
-}
-
-function hr(separatorCharacter, length) {
-  length ||= globalThis.process?.stdout?.columns;
-  return separatorCharacter.repeat(length - 1);
-}
-
-function undoColon(string) {
-  return string.replace(COLON_REPLACER_REGEXP, ':');
-}
-
-function generateTableRow(text, escaper = identity) {
-  if (!text) {
-    return [];
-  }
-
-  const lines = escaper(text).split('\n');
-  const data = [];
-
-  for (const line of lines) {
-    if (line) {
-      data.push(
-        line
-          .replace(TABLE_ROW_WRAP_REGEXP, '')
-          .split(TABLE_CELL_SPLIT)
-          .slice(0, -1)
-      );
-    }
-  }
-
-  return data;
-}
-
-function escapeRegExp(string) {
-  return string.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&');
-}
-
-function unescapeEntities(html) {
-  return html
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
-}
-
-function identity(string) {
-  return string;
-}
-
-function compose(...functions) {
-  return (...arguments_) => {
-    let index = functions.length;
-    for (; index-- > 0; ) {
-      arguments_ = [functions[index](...arguments_)];
-    }
-    return arguments_[0];
-  };
-}
-
-function sanitizeTab(tab, fallbackTab) {
-  if (typeof tab === 'number') {
-    return ' '.repeat(tab);
-  } else if (
-    typeof tab === 'string' &&
-    TAB_ALLOWED_CHARACTERS.some((character) => tab.match(`^(${character})+$`))
-  ) {
-    return tab;
-  } else {
-    return ' '.repeat(fallbackTab);
-  }
-}
