@@ -38,8 +38,7 @@ import {
       equal(markup(text).trim(), expected);
     });
 
-    // TODO: fix this suite
-    it.skip('should pass on options to table', () => {
+    it('should pass on options to table', () => {
       install(legacy, defaultOptions);
       let text =
         '| Lorem | Ipsum | Sit amet     | Dolar  |\n' +
@@ -49,7 +48,7 @@ import {
         '| Row 3  | Value    | Value  | Value |\n' +
         '| Row 4  | Value    | Value  | Value |';
 
-      notEqual(markup(text).indexOf('@@@@TABLE@@@@@'), -1);
+      notEqual(markup(text, true).indexOf('@@@@TABLE@@@@@'), -1);
     });
 
     it('should not show link href twice if link and url is equal', () => {
@@ -146,13 +145,13 @@ import {
       equal(markup(text), expected);
     });
 
-    // @TODO There's an issue when running at GH Actions that cannot
+    // TODO There's an issue when running at GH Actions that cannot
     // be reproduced right now.
-    // it('should preserve line breaks (non gfm)', () => {
-    //   let text = 'Now  \nis    \nthe<br/>time\n';
-    //   let expected = 'Now\nis\nthe<br/>\ntime\n\n';
-    //   equal(markup(text, false), expected);
-    // });
+    it.skip('should preserve line breaks (non gfm)', () => {
+      let text = 'Now  \nis    \nthe<br/>time\n';
+      let expected = 'Now\nis\nthe<br/>\ntime\n\n';
+      equal(markup(text, false), expected);
+    });
 
     it('should preserve line breaks (gfm)', () => {
       install(legacy, defaultOptions2);
