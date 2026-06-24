@@ -316,7 +316,7 @@ const insertEmojis = (text) =>
   });
 
 const hr = (separatorCharacter, length) => {
-  length ||= globalThis.process?.stdout?.columns;
+  length ||= globalThis.process?.stdout?.columns ?? 80;
   return separatorCharacter.repeat(length - 1);
 };
 
