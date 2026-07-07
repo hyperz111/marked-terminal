@@ -152,7 +152,8 @@ const defaultHighlightTheme = {
   default: String
 };
 
-const fixHardReturn = (text, reflow) => reflow ? text.replace(HARD_RETURN, /\n/g) : text;
+const fixHardReturn = (text, reflow) =>
+  reflow ? text.replace(HARD_RETURN, /\n/g) : text;
 
 // Munge \n's and spaces in "text" so that the number of
 // characters between \n's is less than or equal to "width".
@@ -754,6 +755,6 @@ const markedTerminal = (options) => {
     ),
     useNewRenderer: true
   };
-}
+};
 
 export { TerminalRenderer, markedTerminal };
